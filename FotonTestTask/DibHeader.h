@@ -6,10 +6,14 @@ struct DibHeader
 {
 	uint32_t headerSize;
 
-	// The image width in pixels
+	/// <summary>
+	/// The image width in pixels.
+	/// </summary>
 	int32_t imageWidth;
-
-	// The image height in pixels
+	
+	/// <summary>
+	/// The image height in pixels.
+	/// </summary>
 	int32_t imageHeight;
 
 	uint16_t colorPlanesCount;

@@ -1,5 +1,4 @@
 #include "Bmp24.h"
-#include <cmath>
 
 Bmp24::Bmp24(
 	const BmpFileHeader& fileHeader,
@@ -48,6 +47,7 @@ Bmp24 Bmp24::ThinImage(int n) const
 
 	auto newHeight = (int32_t)ceil((float)dibHeader_.imageHeight / n);
 	auto newWidth = (int32_t)ceil((float)dibHeader_.imageWidth / n);
+
 	uint32_t newImageSize = newHeight * newWidth * sizeof(Bgr24) + (newWidth % 4) * newHeight;
 	uint32_t newFileSize = newImageSize + sizeof(BmpFileHeader) + sizeof(DibHeader);
 
@@ -58,7 +58,7 @@ Bmp24 Bmp24::ThinImage(int n) const
 	newDibHeader.imageSize = newImageSize;
 
 	std::vector<Bgr24> newImageData(newWidth * newHeight);
-	// i == 507, j == 510
+
 	for (size_t i = 0; i < dibHeader_.imageHeight; i += n)
 	{
 		for (size_t j = 0; j < dibHeader_.imageWidth; j += n)
@@ -72,7 +72,7 @@ Bmp24 Bmp24::ThinImage(int n) const
 
 void Bmp24::SaveToFile(const char* filePath) const
 {
-	std::ofstream output(filePath, std::ios::out | std::ios::binary);
+	std::ofstream output(filePath, std::ios::binary);
 
 	if (output.is_open())
 	{
@@ -89,8 +89,6 @@ void Bmp24::SaveToFile(const char* filePath) const
 				dibHeader_.imageWidth * sizeof(Bgr24));
 
 			output.write((char*)paddingBytes.data(), paddingBytesCount);
-
-			//output.close();
 		}
 	}
 	else
