@@ -3,7 +3,7 @@
 
 struct Bgr24
 {
-	uint8_t b;
-	uint8_t g;
-	uint8_t r;
+	std::byte b;
+	std::byte g;
+	std::byte r;
 };

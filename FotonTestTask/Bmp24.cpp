@@ -1,13 +1,14 @@
 #include "Bmp24.h"
+#include <cmath>
 
 Bmp24::Bmp24(
 	const BmpFileHeader& fileHeader,
 	const DibHeader& dibHeader,
-	std::unique_ptr<Bgr24[]> imageData)
+	const std::vector<Bgr24>& imageData)
 {
 	fileHeader_ = fileHeader;
 	dibHeader_ = dibHeader;
-	imageData_ = std::move(imageData);
+	imageData_ = imageData;
 }
 
 Bmp24::Bmp24(const char* filePath)
@@ -25,12 +26,11 @@ Bmp24::Bmp24(const char* filePath)
 		auto pixelsCount = (dibHeader_.imageSize - paddingBytesCount * dibHeader_.imageHeight)
 			/ bytePerPixel;
 
-		imageData_ = std::make_unique_for_overwrite<Bgr24[]>(pixelsCount);
+		imageData_ = std::vector<Bgr24>(pixelsCount);
 
-		// Reverse-for because image is stored in down-upside order
-		for (int64_t i = dibHeader_.imageHeight - 1; i >= 0; i--)
+		for (size_t i = 0; i < dibHeader_.imageHeight; i++)
 		{
-			input.read((char*)(imageData_.get() + i * dibHeader_.imageWidth),
+			input.read((char*)&imageData_[i * dibHeader_.imageWidth],
 				dibHeader_.imageWidth * bytePerPixel - paddingBytesCount);
 		}
 	}
@@ -46,8 +46,8 @@ Bmp24 Bmp24::ThinImage(int n) const
 	BmpFileHeader newFileHeader(fileHeader_);
 	DibHeader newDibHeader(dibHeader_);
 
-	auto newHeight = (int32_t)ceil(dibHeader_.imageHeight / n);
-	auto newWidth = (int32_t)ceil(dibHeader_.imageWidth / n);
+	auto newHeight = (int32_t)ceil((float)dibHeader_.imageHeight / n);
+	auto newWidth = (int32_t)ceil((float)dibHeader_.imageWidth / n);
 	uint32_t newImageSize = newHeight * newWidth * sizeof(Bgr24) + (newWidth % 4) * newHeight;
 	uint32_t newFileSize = newImageSize + sizeof(BmpFileHeader) + sizeof(DibHeader);
 
@@ -57,12 +57,8 @@ Bmp24 Bmp24::ThinImage(int n) const
 	newDibHeader.imageWidth = newWidth;
 	newDibHeader.imageSize = newImageSize;
 
-	// гдеяэ аег * sizeof(Bgr24)
-	auto newImageData
-	{ 
-		std::make_unique_for_overwrite<Bgr24[]>(newHeight * newWidth) 
-	};
-
+	std::vector<Bgr24> newImageData(newWidth * newHeight);
+	// i == 507, j == 510
 	for (size_t i = 0; i < dibHeader_.imageHeight; i += n)
 	{
 		for (size_t j = 0; j < dibHeader_.imageWidth; j += n)
@@ -71,7 +67,7 @@ Bmp24 Bmp24::ThinImage(int n) const
 		}
 	}
 
-	return Bmp24(newFileHeader, newDibHeader, std::move(newImageData));
+	return Bmp24(newFileHeader, newDibHeader, newImageData);
 }
 
 void Bmp24::SaveToFile(const char* filePath) const
@@ -85,15 +81,16 @@ void Bmp24::SaveToFile(const char* filePath) const
 
 		int bytePerPixel = dibHeader_.bitPerPixel / 8;
 		int paddingBytesCount = dibHeader_.imageWidth % 4;
-		auto paddingBytes{ std::make_unique<char[]>(paddingBytesCount) };
+		std::vector<std::byte> paddingBytes(paddingBytesCount);
 
-		// Reverse-for because image must be stored in down-upside order
-		for (int64_t i = dibHeader_.imageHeight - 1; i >= 0; i--)
+		for (size_t i = 0; i < dibHeader_.imageHeight; i++)
 		{
-			output.write((char*)(imageData_.get() + i * dibHeader_.imageWidth),
-				dibHeader_.imageWidth * bytePerPixel - paddingBytesCount);
+			output.write((char*)&imageData_[i * dibHeader_.imageWidth],
+				dibHeader_.imageWidth * sizeof(Bgr24));
 
-			output.write((char*)paddingBytes.get(), paddingBytesCount);
+			output.write((char*)paddingBytes.data(), paddingBytesCount);
+
+			//output.close();
 		}
 	}
 	else
