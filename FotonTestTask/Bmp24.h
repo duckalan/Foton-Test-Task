@@ -1,7 +1,7 @@
 #pragma once
 
 #include <fstream>
-#include <memory>
+#include <vector>
 #include "BmpFileHeader.h"
 #include "DibHeader.h"
 #include "Bgr24.h"
@@ -12,12 +12,14 @@ private:
 	BmpFileHeader fileHeader_ = {};
 	DibHeader dibHeader_ = {};
 
-	// Cleared bgr pixels without padding bytes, saved in normal upside-down order
-	std::unique_ptr<Bgr24[]> imageData_;
+	/// <summary>
+	/// Flipped over bgr pixels without padding bytes
+	/// </summary>
+	std::vector<Bgr24> imageData_;
 
-	Bmp24(const BmpFileHeader& fileHeader, 
-		  const DibHeader&  dibHeader, 
-		  std::unique_ptr<Bgr24[]> imageData);
+	Bmp24(const BmpFileHeader& fileHeader,
+		const DibHeader& dibHeader,
+		const std::vector<Bgr24>& imageData);
 
 public:
 	Bmp24(const char* filePath);

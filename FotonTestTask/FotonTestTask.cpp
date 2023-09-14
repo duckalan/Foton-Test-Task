@@ -1,26 +1,31 @@
 #include <iostream>
 #include "Bmp24.h"
 
-// Считать bmp с 24 bpp, прорежить в N раз, сохранить в новое изображение
+// Read bmp with color depth 24 bits per pixel, 
+// thin it by N times, save thinned image in new bmp
 
 int main(int argc, char* argv[])
 {
-	//std::cout
-	auto inputFilePath = "D:\\Code\\FotonTestTask\\Lenna.bmp";
-	auto outputFilePath = "D:\\Code\\FotonTestTask\\testO.bmp";
+	const int inputFilePathIndex = 1;
+	const int outputFilePathIndex = 2;
+	const int nIndex = 3;
+
+	bool isThinningSuccessful = true;
 
 	try
 	{
-		Bmp24 bmp(inputFilePath);
-		auto b2 = bmp.ThinImage(3);
-		b2.SaveToFile(outputFilePath);
+		Bmp24 inputBmp(argv[inputFilePathIndex]);
+		auto thinnedBmp = inputBmp.ThinImage(atoi(argv[nIndex]));
+		thinnedBmp.SaveToFile(argv[outputFilePathIndex]);
 	}
 	catch (const std::invalid_argument& e)
 	{
+		isThinningSuccessful = false;
 		std::cout << e.what() << '\n';
 	}
 
-
-	//bmp.SaveToFile(outputFilePath);
-	std::cout << "Done.\n";
+	if (isThinningSuccessful)
+	{
+		std::cout << "Thinning has completed.\n";
+	}
 }
