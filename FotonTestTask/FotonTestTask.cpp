@@ -1,5 +1,10 @@
 #include <iostream>
+#include <chrono>
 #include "Bmp24.h"
+
+using std::chrono::high_resolution_clock;
+using std::chrono::duration_cast;
+using std::chrono::milliseconds;
 
 // Read bmp with color depth 24 bits per pixel, 
 // thin it by N times, save thinned image in new bmp
@@ -12,6 +17,7 @@ int main(int argc, char* argv[])
 
 	bool isThinningSuccessful = true;
 
+	auto now = high_resolution_clock::now();
 	try
 	{
 		Bmp24 inputBmp(argv[inputFilePathIndex]);
@@ -26,6 +32,7 @@ int main(int argc, char* argv[])
 
 	if (isThinningSuccessful)
 	{
-		std::cout << "Thinning has completed.\n";
+		auto resultTime = duration_cast<milliseconds>(high_resolution_clock::now() - now);
+		std::cout << "Thinning has been completed in " << resultTime.count() << " ms.\n";
 	}
 }
