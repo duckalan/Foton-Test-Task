@@ -129,14 +129,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Bmp24.cpp" />
     <ClCompile Include="FotonTestTask.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bgr24.h" />
-    <ClInclude Include="Bmp24.h" />
     <ClInclude Include="BmpFileHeader.h" />
     <ClInclude Include="DibHeader.h" />
+    <ClInclude Include="FotonTestTask.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
