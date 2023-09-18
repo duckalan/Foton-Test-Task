@@ -71,9 +71,14 @@ void ThinBmpImage(const char* inputFilePath, const char* outputFilePath, int n)
 	output.write((char*)&fileHeader, sizeof(BmpFileHeader));
 	output.write((char*)&dibHeader, sizeof(DibHeader));
 
+	std::vector<Bgr24> originalRowBuffer(originalWidth);
+	// массив под выходную строку, переход к байтам. j*3 + номер канала.
+	// blueChannel = 0
+	// greenChannel = 1
+	// redChannel = 2
+
 	for (size_t i = 0; i < originalHeight; i += n)
 	{
-		std::vector<Bgr24> originalRowBuffer(originalWidth);
 
 		// Read row excluding padding bytes
 		input.read((char*)originalRowBuffer.data(), originalWidth * sizeof(Bgr24));
