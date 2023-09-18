@@ -132,10 +132,10 @@
     <ClCompile Include="FotonTestTask.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Bgr24.h" />
     <ClInclude Include="BmpFileHeader.h" />
     <ClInclude Include="DibHeader.h" />
     <ClInclude Include="FotonTestTask.h" />
+    <ClInclude Include="ReadedInfo.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
