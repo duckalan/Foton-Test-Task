@@ -135,7 +135,7 @@
     <ClInclude Include="BmpFileHeader.h" />
     <ClInclude Include="DibHeader.h" />
     <ClInclude Include="FotonTestTask.h" />
-    <ClInclude Include="ReadedInfo.h" />
+    <ClInclude Include="RequiredInfo.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
