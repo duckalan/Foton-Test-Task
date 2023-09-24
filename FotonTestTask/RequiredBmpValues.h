@@ -1,7 +1,8 @@
 #pragma once
 #include <cstdint>
 
-struct RequiredInfo {
+struct RequiredBmpValues 
+{
 	int32_t inputHeight;
 	int32_t inputWidth;
 	int64_t inputStride;
