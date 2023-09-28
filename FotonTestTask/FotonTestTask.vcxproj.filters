@@ -18,6 +18,9 @@
     <ClCompile Include="FotonTestTask.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="BmpDownscailing.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BmpFileHeader.h">
@@ -26,10 +29,10 @@
     <ClInclude Include="DibHeader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Bgr24.h">
+    <ClInclude Include="RequiredBmpValues.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FotonTestTask.h">
+    <ClInclude Include="BmpDownscailing.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
