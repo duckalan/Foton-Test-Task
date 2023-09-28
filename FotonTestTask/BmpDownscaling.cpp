@@ -1,5 +1,5 @@
 #include <fstream>
-#include "BmpDownscailing.h"
+#include "BmpDownscaling.h"
 #include "BmpFileHeader.h"
 #include "DibHeader.h"
 
@@ -74,10 +74,9 @@ void DownscaleBmpWithAvgScailing(
 
 	RequiredBmpValues info = ReadChangeWriteHeaders(input, output, n);
 
-	//uint8_t
-	vector<unsigned char> inputRowBuffer(info.inputWidth * BytePerPx);
+	vector<uint8_t> inputRowBuffer(info.inputWidth * BytePerPx);
+	vector<uint8_t> outputRowBuffer(info.outputStride);
 	vector<float> avgValuesBuffer(info.outputWidth * BytePerPx);
-	vector<unsigned char> outputRowBuffer(info.outputStride);
 
 	// Количество пикселей в столбце в последнем окне
 	int remainingHeight = info.inputHeight % n;
@@ -185,9 +184,6 @@ void FindAvgValuesInSumBuffer(
 	bool isTopEdge,
 	int n)
 {
-	// Количество пикселей в столбце в последнем окне
-	int remainingHeight = srcH % n;
-
 	// Количество пикселей в строке в последнем окне
 	int remainingWidth = srcW % n;
 
@@ -196,6 +192,9 @@ void FindAvgValuesInSumBuffer(
 
 	if (isTopEdge)
 	{
+		// Количество пикселей в столбце в последнем окне
+		int remainingHeight = srcH % n;
+
 		// перенести высоту сюда
 		windowSquare = n * remainingHeight;
 		lastWindowSquare = remainingWidth * remainingHeight;
@@ -244,9 +243,8 @@ RequiredBmpValues ReadChangeWriteHeaders(
 	info.inputStride = (int64_t)(info.inputWidth * BytePerPx + 3) & ~3;
 	info.inputPaddingBytesCount = info.inputStride - (int64_t)info.inputWidth * BytePerPx;
 
-	// + n -1 / n
-	int32_t outputHeight = ceil((float)info.inputHeight / n);
-	info.outputWidth = ceil((float)info.inputWidth / n);
+	int32_t outputHeight = (info.inputHeight + n - 1) / n;
+	info.outputWidth = (info.inputWidth + n - 1) / n;
 	info.outputStride = (int64_t)(info.outputWidth * BytePerPx + 3) & ~3;
 
 	dibHeader.imageHeight = outputHeight;

@@ -1,7 +1,7 @@
 #include <iostream>
 #include <chrono>
 
-#include "BmpDownscailing.h"
+#include "BmpDownscaling.h"
 
 using std::chrono::high_resolution_clock;
 using std::chrono::duration_cast;
@@ -33,8 +33,8 @@ int main(int argc, char* argv[])
 		auto now = high_resolution_clock::now();
 
 		DownscaleBmpWithAvgScailing(
-			"C:\\Users\\Duck\\Desktop\\test images\\test4.bmp",
-			"C:\\Users\\Duck\\Desktop\\test images\\test4NewOutput.bmp",
+			"C:\\Users\\Duck\\Desktop\\test\\test3.bmp",
+			"C:\\Users\\Duck\\Desktop\\test\\test2O.bmp",
 			5);
 
 		auto resultTime = duration_cast<milliseconds>(high_resolution_clock::now() - now);

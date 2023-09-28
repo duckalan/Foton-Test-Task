@@ -129,12 +129,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="BmpDownscailing.cpp" />
+    <ClCompile Include="BmpDownscaling.cpp" />
     <ClCompile Include="FotonTestTask.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BmpFileHeader.h" />
-    <ClInclude Include="BmpDownscailing.h" />
+    <ClInclude Include="BmpDownscaling.h" />
     <ClInclude Include="DibHeader.h" />
     <ClInclude Include="RequiredBmpValues.h" />
   </ItemGroup>
