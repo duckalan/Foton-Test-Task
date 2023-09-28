@@ -74,6 +74,7 @@ void DownscaleBmpWithAvgScailing(
 
 	RequiredBmpValues info = ReadChangeWriteHeaders(input, output, n);
 
+	//uint8_t
 	vector<unsigned char> inputRowBuffer(info.inputWidth * BytePerPx);
 	vector<float> avgValuesBuffer(info.outputWidth * BytePerPx);
 	vector<unsigned char> outputRowBuffer(info.outputStride);
@@ -195,6 +196,7 @@ void FindAvgValuesInSumBuffer(
 
 	if (isTopEdge)
 	{
+		// перенести высоту сюда
 		windowSquare = n * remainingHeight;
 		lastWindowSquare = remainingWidth * remainingHeight;
 	}
@@ -242,6 +244,7 @@ RequiredBmpValues ReadChangeWriteHeaders(
 	info.inputStride = (int64_t)(info.inputWidth * BytePerPx + 3) & ~3;
 	info.inputPaddingBytesCount = info.inputStride - (int64_t)info.inputWidth * BytePerPx;
 
+	// + n -1 / n
 	int32_t outputHeight = ceil((float)info.inputHeight / n);
 	info.outputWidth = ceil((float)info.inputWidth / n);
 	info.outputStride = (int64_t)(info.outputWidth * BytePerPx + 3) & ~3;
