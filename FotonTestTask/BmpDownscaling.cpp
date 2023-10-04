@@ -99,12 +99,12 @@ void DownscaleBmpWithAvgScailing(
 				n);
 		}
 
-		FindAvgValuesInSumBuffer(
+		/*FindAvgValuesInSumBuffer(
 			avgValuesBuffer,
 			info.inputWidth,
 			info.inputHeight,
 			false,
-			n);
+			n);*/
 
 		std::copy(begin(avgValuesBuffer), end(avgValuesBuffer), begin(outputRowBuffer));
 
@@ -129,12 +129,12 @@ void DownscaleBmpWithAvgScailing(
 				n);
 		}
 
-		FindAvgValuesInSumBuffer(
+		/*FindAvgValuesInSumBuffer(
 			avgValuesBuffer,
 			info.inputWidth,
 			info.inputHeight,
 			true,
-			n);
+			n);*/
 
 		std::copy(begin(avgValuesBuffer), end(avgValuesBuffer), begin(outputRowBuffer));
 
@@ -178,53 +178,53 @@ void SumWindowsInRow(
 	}
 }
 
-void FindAvgValuesInSumBuffer(
-	vector<float>& sumBuffer,
-	int32_t srcW, int32_t srcH,
-	bool isTopEdge,
-	int n)
-{
-	// Количество пикселей в строке в последнем окне
-	int remainingWidth = srcW % n;
-
-	int windowSquare;
-	int lastWindowSquare;
-
-	if (isTopEdge)
-	{
-		// Количество пикселей в столбце в последнем окне
-		int remainingHeight = srcH % n;
-
-		// перенести высоту сюда
-		windowSquare = n * remainingHeight;
-		lastWindowSquare = remainingWidth * remainingHeight;
-	}
-	else
-	{
-		windowSquare = n * n;
-		lastWindowSquare = remainingWidth * n;
-	}
-
-	// Нахождение средних значений
-	for (size_t k = 0;
-		k < (size_t)srcW - remainingWidth;
-		k += n)
-	{
-		sumBuffer[k * BytePerPx / n] /= windowSquare;
-		sumBuffer[k * BytePerPx / n + 1] /= windowSquare;
-		sumBuffer[k * BytePerPx / n + 2] /= windowSquare;
-	}
-
-	// Нахождение средних значений у оставшейся части пикселей
-	if (remainingWidth != 0)
-	{
-		size_t lastPixelOffset = (size_t)srcW - remainingWidth;
-		
-		sumBuffer[lastPixelOffset * BytePerPx / n] /= lastWindowSquare;
-		sumBuffer[lastPixelOffset * BytePerPx / n + 1] /= lastWindowSquare;
-		sumBuffer[lastPixelOffset * BytePerPx / n + 2] /= lastWindowSquare;
-	}
-}
+//void FindAvgValuesInSumBuffer(
+//	vector<float>& sumBuffer,
+//	int32_t srcW, int32_t srcH,
+//	bool isTopEdge,
+//	int n)
+//{
+//	// Количество пикселей в строке в последнем окне
+//	int remainingWidth = srcW % n;
+//
+//	int windowSquare;
+//	int lastWindowSquare;
+//
+//	if (isTopEdge)
+//	{
+//		// Количество пикселей в столбце в последнем окне
+//		int remainingHeight = srcH % n;
+//
+//		// перенести высоту сюда
+//		windowSquare = n * remainingHeight;
+//		lastWindowSquare = remainingWidth * remainingHeight;
+//	}
+//	else
+//	{
+//		windowSquare = n * n;
+//		lastWindowSquare = remainingWidth * n;
+//	}
+//
+//	// Нахождение средних значений
+//	for (size_t k = 0;
+//		k < (size_t)srcW - remainingWidth;
+//		k += n)
+//	{
+//		sumBuffer[k * BytePerPx / n] /= windowSquare;
+//		sumBuffer[k * BytePerPx / n + 1] /= windowSquare;
+//		sumBuffer[k * BytePerPx / n + 2] /= windowSquare;
+//	}
+//
+//	// Нахождение средних значений у оставшейся части пикселей
+//	if (remainingWidth != 0)
+//	{
+//		size_t lastPixelOffset = (size_t)srcW - remainingWidth;
+//		
+//		sumBuffer[lastPixelOffset * BytePerPx / n] /= lastWindowSquare;
+//		sumBuffer[lastPixelOffset * BytePerPx / n + 1] /= lastWindowSquare;
+//		sumBuffer[lastPixelOffset * BytePerPx / n + 2] /= lastWindowSquare;
+//	}
+//}
 
 RequiredBmpValues ReadChangeWriteHeaders(
 	std::ifstream& input,
