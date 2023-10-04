@@ -130,13 +130,18 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="BmpDownscaling.cpp" />
+    <ClCompile Include="DibHeader.cpp" />
     <ClCompile Include="FotonTestTask.cpp" />
+    <ClCompile Include="TiffDownscaling.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BmpFileHeader.h" />
     <ClInclude Include="BmpDownscaling.h" />
     <ClInclude Include="DibHeader.h" />
     <ClInclude Include="RequiredBmpValues.h" />
+    <ClInclude Include="TiffDownscaling.h" />
+    <ClInclude Include="RequiredTiffData.h" />
+    <ClInclude Include="TiffField.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

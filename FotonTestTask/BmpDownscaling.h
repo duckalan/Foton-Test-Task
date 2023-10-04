@@ -25,11 +25,11 @@ void SumWindowsInRow(
 	int32_t inputImageWidthInPixels,
 	int n);
 
-void FindAvgValuesInSumBuffer(
-	vector<float>& sumBuffer,
-	int32_t srcW, int32_t srcH,
-	bool isTopEdge,
-	int n);
+//void FindAvgValuesInSumBuffer(
+//	vector<float>& sumBuffer,
+//	int32_t srcW, int32_t srcH,
+//	bool isTopEdge,
+//	int n);
 
 RequiredBmpValues ReadChangeWriteHeaders(
 	std::ifstream& input,

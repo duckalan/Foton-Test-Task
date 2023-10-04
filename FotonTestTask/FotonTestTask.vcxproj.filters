@@ -21,6 +21,12 @@
     <ClCompile Include="BmpDownscaling.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="TiffDownscaling.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DibHeader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BmpFileHeader.h">
@@ -33,6 +39,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="BmpDownscaling.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TiffDownscaling.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RequiredTiffData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TiffField.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
