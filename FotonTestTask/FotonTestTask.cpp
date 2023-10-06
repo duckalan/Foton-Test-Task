@@ -18,9 +18,9 @@ int main(int argc, char* argv[])
 		auto now = high_resolution_clock::now();
 
 		DownscaleTiffWithAvgScaling(
-			"C:\\Users\\Duck\\Desktop\\test images\\0041_0102_01567_1_01497_03_S.tiff",
-			"C:\\Users\\Duck\\Desktop\\test images\\output.bmp",
-			10);
+			"H:\\ImageTest\\0041_0102_01567_1_01497_03_S.tiff",
+			"H:\\ImageTest\\output.bmp",
+			8);
 
 		auto resultTime = duration_cast<milliseconds>(high_resolution_clock::now() - now);
 		std::cout << "Thinning has been completed in " << resultTime.count() << " ms.\n";

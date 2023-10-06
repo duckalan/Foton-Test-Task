@@ -5,7 +5,7 @@ RequiredTiffData ReadTiff(std::ifstream& input)
 	int32_t tiffIdentifier = 0;
 	input.read((char*)&tiffIdentifier, sizeof(uint32_t));
 
-	if (tiffIdentifier != littleEndianTiffIdentifier)
+	if (tiffIdentifier != LittleEndianTiffIdentifier)
 	{
 		throw std::invalid_argument("Can't work with big-endian tiff format");
 	}
@@ -27,63 +27,76 @@ RequiredTiffData ReadTiff(std::ifstream& input)
 
 		switch (field.tag)
 		{
-		case imageWidthTag:
+		case ImageWidthTag:
 			result.srcWidthPx = field.valueOffset;
 			break;
 
-		case imageLengthTag:
+		case ImageLengthTag:
 			result.srcLengthPx = field.valueOffset;
 			break;
 
-		case bitsPerSampleTag:
+		case BitsPerSampleTag:
 		{
-			auto lastPosition = input.tellg();
-
-			// Проверка count на 3
-
-			input.seekg(field.valueOffset);
-
-			uint16_t bitsPerSample[3]{};
-			input.read((char*)bitsPerSample, sizeof(bitsPerSample));
-
-			for (size_t j = 0; j < 3; j++)
+			if (field.count == 1)
 			{
-				if (bitsPerSample[j] != 16)
+				if (field.valueOffset != 16)
 				{
 					throw std::invalid_argument("Can't work with images with image depth not 16 bit per sample ");
 				}
+
+				result.bitsPerSample = field.valueOffset;
 			}
+			else
+			{
+				auto lastPosition = input.tellg();
 
-			result.bitsPerSample = bitsPerSample[0];
+				input.seekg(field.valueOffset);
 
-			input.seekg(lastPosition);
+				uint16_t bitsPerSample[3]{};
+				input.read((char*)bitsPerSample, sizeof(bitsPerSample));
 
+				for (size_t j = 0; j < 3; j++)
+				{
+					if (bitsPerSample[j] != 16)
+					{
+						throw std::invalid_argument("Can't work with images with image depth not 16 bit per sample ");
+					}
+				}
+
+				result.bitsPerSample = bitsPerSample[0];
+
+				input.seekg(lastPosition);
+			}
 			break;
 		}
 
-		case compressionTag:
-			if (field.valueOffset != imageWithoutCompression)
+		case CompressionTag:
+			if (field.valueOffset != ImageWithoutCompression)
 			{
 				throw std::invalid_argument("Can't work with compressed images");
 			}
 			break;
 
-		case stripOffsetsTag:
-		{
-			auto lastPosition = input.tellg();
+		case StripOffsetsTag:
+			if (field.count == 1)
+			{
+				result.stripOffsets = std::vector<uint32_t>(1);
+				input.read((char*)result.stripOffsets.data(), sizeof(uint32_t));
+			}
+			else
+			{
+				auto lastPosition = input.tellg();
 
-			// проверка на count == 1
+				input.seekg(field.valueOffset);
 
-			input.seekg(field.valueOffset);
+				result.stripOffsets = std::vector<uint32_t>(field.count);
+				input.read((char*)result.stripOffsets.data(), field.count * sizeof(uint32_t));
 
-			result.stripOffsets = std::vector<uint32_t>(field.count);
-			input.read((char*)result.stripOffsets.data(), field.count * sizeof(uint32_t));
-
-			input.seekg(lastPosition);
-
+				input.seekg(lastPosition);
+			}
 			break;
-		}
-		case rowsPerStripTag:
+
+		case RowsPerStripTag:
 			result.rowsPerStrip = field.valueOffset;
 			break;
 
@@ -106,6 +119,14 @@ void WriteBmpHeaders(const RequiredTiffData& tiffData, std::ofstream& output)
 
 	output.write((char*)&fileHeader, sizeof(BmpFileHeader));
 	output.write((char*)&dibHeader, sizeof(DibHeader));
+}
+
+void CopyAvgValuesToDestRowBuffer(const vector<float>& avgValues, vector<uint8_t>& destRowBuffer) 
+{
+	for (size_t i = 0; i < avgValues.size(); i++)
+	{
+		destRowBuffer[i] = (uint8_t)(avgValues[i] + 0.5f);
+	}
 }
 
 void DownscaleTiffWithAvgScaling(path inputFilePath, path outputFilePath, int n)
@@ -148,7 +169,7 @@ void DownscaleTiffWithAvgScaling(path inputFilePath, path outputFilePath, int n)
 	input.seekg(tiffData.stripOffsets[0]);
 
 	// Переход к позиции для начала записи с конца
-	output.seekp(54 + (bmpRowCounter--) * tiffData.destStrideBytes);
+	output.seekp(BmpImageOffsetBytes + (bmpRowCounter--) * tiffData.destStrideBytes);
 
 	for (size_t y = 0; y < tiffData.srcLengthPx - remainingLengthPx; y += n)
 	{
@@ -163,26 +184,26 @@ void DownscaleTiffWithAvgScaling(path inputFilePath, path outputFilePath, int n)
 
 			input.read((char*)srcRowBuffer.data(), tiffData.srcWidthPx * TiffBytePerPx);
 
-			SumWindowsInRow(srcRowBuffer, avgValuesBuffer, tiffData.srcWidthPx, n);
+			SumWindowsInRow(srcRowBuffer, avgValuesBuffer, n);
 
 			rowInStripCounter++;
 		}
 
-		// Calc
-		FindAvgValuesInSumBuffer(
+		CalculateAvgValuesInSumBuffer(
 			avgValuesBuffer,
 			tiffData.srcWidthPx,
 			tiffData.srcLengthPx,
 			false,
 			n);
 
-		// Округлять. + 0.5. к чётной цифре если правильно
-		std::copy(begin(avgValuesBuffer), end(avgValuesBuffer), begin(destRowBuffer));
+		CopyAvgValuesToDestRowBuffer(avgValuesBuffer, destRowBuffer);
 
 		output.write((char*)destRowBuffer.data(), destRowBuffer.size());
 
-		// условие на bmpRowCounter >= 0
-		output.seekp(54 + (bmpRowCounter--) * tiffData.destStrideBytes);
+		if (bmpRowCounter >= 0)
+		{
+			output.seekp(BmpImageOffsetBytes + (bmpRowCounter--) * tiffData.destStrideBytes);
+		}
 
 		std::fill(begin(avgValuesBuffer), end(avgValuesBuffer), 0.f);
 	}
@@ -200,19 +221,19 @@ void DownscaleTiffWithAvgScaling(path inputFilePath, path outputFilePath, int n)
 
 			input.read((char*)srcRowBuffer.data(), tiffData.srcWidthPx * TiffBytePerPx);
 
-			SumWindowsInRow(srcRowBuffer, avgValuesBuffer, tiffData.srcWidthPx, n);
+			SumWindowsInRow(srcRowBuffer, avgValuesBuffer, n);
 
 			rowInStripCounter++;
 		}
 
-		FindAvgValuesInSumBuffer(
+		CalculateAvgValuesInSumBuffer(
 			avgValuesBuffer,
 			tiffData.srcWidthPx,
 			tiffData.srcLengthPx,
 			true,
 			n);
 
-		std::copy(begin(avgValuesBuffer), end(avgValuesBuffer), begin(destRowBuffer));
+		CopyAvgValuesToDestRowBuffer(avgValuesBuffer, destRowBuffer);
 
 		output.write((char*)destRowBuffer.data(), destRowBuffer.size());
 
@@ -238,21 +259,23 @@ void DownscaleTiffWithAvgScaling(path inputFilePath, path outputFilePath, int n)
 void SumWindowsInRow(
 	const vector<uint16_t>& srcRow,
 	vector<float>& sumBuffer,
-	int32_t srcWidthPx,
-	int n) 
+	int n)
 {
-	// можно не передавать ширину, а вычислить
+	int32_t srcWidthPx = srcRow.size() / ChannelCount;
 	int remainingWidthPx = srcWidthPx % n;
-	size_t lastWindowOffsetPx = srcWidthPx - remainingWidthPx;
+	size_t lastWindowOffsetPx = static_cast<size_t>(srcWidthPx) - remainingWidthPx;
 
 	for (size_t x = 0; x < lastWindowOffsetPx; x += n)
 	{
 		for (size_t w = x * ChannelCount;
-			 w < (x + n) * ChannelCount;
-			 w += ChannelCount)
+			w < (x + n) * ChannelCount;
+			w += ChannelCount)
 		{
 			// Так как в tiff порядок rgb, здесь необходимо
 			// записывать в буфер в обратном порядке
+
+			// ВМЕСТО >> 2 ПРИМЕНЯТЬ ФУНКЦИЮ АДАПТИВНОГО КОНТРАСТИРОВАНИЯ ДЛЯ КАНАЛА 
+
 			// B
 			sumBuffer[x * ChannelCount / n] += srcRow[w + 2] >> 2;
 			// G
@@ -273,7 +296,7 @@ void SumWindowsInRow(
 	}
 }
 
-void FindAvgValuesInSumBuffer(
+void CalculateAvgValuesInSumBuffer(
 	vector<float>& sumBuffer,
 	int32_t srcWidthPx, int32_t srcLengthPx,
 	bool isBottomEdge,
