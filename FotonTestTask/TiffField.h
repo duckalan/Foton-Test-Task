@@ -2,18 +2,17 @@
 
 #include <stdint.h>
 
-const uint32_t littleEndianTiffIdentifier = 0x2a'4949u;
+const uint32_t LittleEndianTiffIdentifier = 0x2a'4949u;
+const uint16_t ImageWithoutCompression = 1;
 
-const uint16_t imageWithoutCompression = 1;
+const uint16_t ImageWidthTag = 0x100;
+const uint16_t ImageLengthTag = 0x101;
+const uint16_t BitsPerSampleTag = 0x102;
+const uint16_t CompressionTag = 0x103;
+const uint16_t StripOffsetsTag = 0x111;
+const uint16_t RowsPerStripTag = 0x116;
 
-const uint16_t imageWidthTag = 0x100;
-const uint16_t imageLengthTag = 0x101;
-const uint16_t bitsPerSampleTag = 0x102;
-const uint16_t compressionTag = 0x103;
-const uint16_t stripOffsetsTag = 0x111;
-const uint16_t rowsPerStripTag = 0x116;
-
-// pack добавить по 1
+#pragma pack(push, 1)
 struct TiffField
 {
 	/// <summary>
@@ -36,3 +35,4 @@ struct TiffField
 	/// </summary>
 	uint32_t valueOffset;
 };
+#pragma pack(pop)
