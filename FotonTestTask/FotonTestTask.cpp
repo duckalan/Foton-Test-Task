@@ -39,8 +39,8 @@ int main()
 		auto now = high_resolution_clock::now();
 
 		DownscaleTiffWithAvgScaling(
-			"C:\\Users\\Duck\\Desktop\\test images\\0041_0102_01567_1_01497_03_S.tiff",
-			"C:\\Users\\Duck\\Desktop\\test images\\output.bmp",
+			"H:\\ImageTest\\0041_0102_01567_1_01497_03_S.tiff",
+			"H:\\ImageTest\\filtrationTest.bmp",
 			0.01f, 0.99f,
 			1);
 

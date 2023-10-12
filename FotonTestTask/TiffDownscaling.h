@@ -10,6 +10,7 @@
 #include "RequiredTiffData.h"
 #include "DibHeader.h"
 #include "BmpFileHeader.h"
+#include "ContrastingFunc.h"
 
 using std::array;
 using std::function;
@@ -36,7 +37,6 @@ void WriteBmpHeaders(const RequiredTiffData& tiffData, std::ofstream& output);
 void SumWindowsInRow(
 	const vector<uint16_t>& srcRow,
 	vector<float>& sumBuffer,
-	const array<function<float(float)>, 3>& contrastingFuncs,
 	int n);
 
 void CalculateAvgValuesInSumBuffer(
@@ -47,15 +47,16 @@ void CalculateAvgValuesInSumBuffer(
 
 void CopyAvgValuesToDestRowBuffer(
 	const vector<float>& avgValues, 
-	vector<uint8_t>& destRowBuffer);
+	vector<uint8_t>& destRowBuffer,
+	const array<ContrastingFunc, ChannelCount>& contrastingFuncs);
 
 
-array<function<float(float)>, 3> BuildContrastingFuncs(
+array<ContrastingFunc, 3> BuildContrastingFuncs(
 	std::ifstream& input,
 	const RequiredTiffData& tiffData,
 	float minBorder, float maxBorder);
 
-function<float(float)> BuildContrastingFunc(
-	const vector<uint32_t> histogram,
+ContrastingFunc BuildContrastingFunc(
+	const vector<uint32_t>& histogram,
 	uint32_t histogramSquare,
 	float minBorder, float maxBorder);

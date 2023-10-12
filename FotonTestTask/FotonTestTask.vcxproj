@@ -130,6 +130,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="BmpDownscaling.cpp" />
+    <ClCompile Include="ContrastingFunc.cpp" />
     <ClCompile Include="DibHeader.cpp" />
     <ClCompile Include="FotonTestTask.cpp" />
     <ClCompile Include="TiffDownscaling.cpp" />
@@ -137,6 +138,7 @@
   <ItemGroup>
     <ClInclude Include="BmpFileHeader.h" />
     <ClInclude Include="BmpDownscaling.h" />
+    <ClInclude Include="ContrastingFunc.h" />
     <ClInclude Include="DibHeader.h" />
     <ClInclude Include="RequiredBmpValues.h" />
     <ClInclude Include="TiffDownscaling.h" />

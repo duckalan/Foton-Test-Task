@@ -3,10 +3,10 @@
 #include <numeric>
 
 void DownscaleTiffWithAvgScaling(
-	path inputFilePath, 
-	path outputFilePath, 
+	path inputFilePath,
+	path outputFilePath,
 	float minContrastBorder,
-	float maxContrastBorder, 
+	float maxContrastBorder,
 	int n)
 {
 	std::ifstream input(inputFilePath, std::ios::in | std::ios::binary);
@@ -37,9 +37,9 @@ void DownscaleTiffWithAvgScaling(
 	vector<float> avgValuesBuffer(tiffData.destWidthPx * ChannelCount);
 
 	// без auto
-	auto contrastingFuncs = BuildContrastingFuncs(
-		input, tiffData, 
-		minContrastBorder, 
+	array<ContrastingFunc, ChannelCount> contrastingFuncs = BuildContrastingFuncs(
+		input, tiffData,
+		minContrastBorder,
 		maxContrastBorder);
 
 	int remainingLengthPx = tiffData.srcLengthPx % n;
@@ -68,7 +68,7 @@ void DownscaleTiffWithAvgScaling(
 
 			input.read((char*)srcRowBuffer.data(), tiffData.srcWidthPx * TiffBytePerPx);
 
-			SumWindowsInRow(srcRowBuffer, avgValuesBuffer, contrastingFuncs, n);
+			SumWindowsInRow(srcRowBuffer, avgValuesBuffer, n);
 
 			rowInStripCounter++;
 		}
@@ -80,7 +80,7 @@ void DownscaleTiffWithAvgScaling(
 			false,
 			n);
 
-		CopyAvgValuesToDestRowBuffer(avgValuesBuffer, destRowBuffer);
+		CopyAvgValuesToDestRowBuffer(avgValuesBuffer, destRowBuffer, contrastingFuncs);
 
 		output.write((char*)destRowBuffer.data(), destRowBuffer.size());
 
@@ -105,7 +105,7 @@ void DownscaleTiffWithAvgScaling(
 
 			input.read((char*)srcRowBuffer.data(), tiffData.srcWidthPx * TiffBytePerPx);
 
-			SumWindowsInRow(srcRowBuffer, avgValuesBuffer, contrastingFuncs, n);
+			SumWindowsInRow(srcRowBuffer, avgValuesBuffer, n);
 
 			rowInStripCounter++;
 		}
@@ -117,7 +117,7 @@ void DownscaleTiffWithAvgScaling(
 			true,
 			n);
 
-		CopyAvgValuesToDestRowBuffer(avgValuesBuffer, destRowBuffer);
+		CopyAvgValuesToDestRowBuffer(avgValuesBuffer, destRowBuffer, contrastingFuncs);
 
 		output.write((char*)destRowBuffer.data(), destRowBuffer.size());
 
@@ -232,7 +232,7 @@ RequiredTiffData ReadTiff(std::ifstream& input)
 
 
 void WriteBmpHeaders(
-	const RequiredTiffData& tiffData, 
+	const RequiredTiffData& tiffData,
 	std::ofstream& output)
 {
 	DibHeader dibHeader(tiffData);
@@ -248,7 +248,6 @@ void WriteBmpHeaders(
 void SumWindowsInRow(
 	const vector<uint16_t>& srcRow,
 	vector<float>& sumBuffer,
-	const array<function<float(float)>, 3>& contrastingFuncs,
 	int n)
 {
 	int32_t srcWidthPx = srcRow.size() / ChannelCount;
@@ -266,11 +265,11 @@ void SumWindowsInRow(
 
 			// В конце контрастирование
 			// B
-			sumBuffer[x * ChannelCount / n] += contrastingFuncs[2](srcRow[w + 2]);
+			sumBuffer[x * ChannelCount / n] += srcRow[w + 2];
 			// G
-			sumBuffer[x * ChannelCount / n + 1] += contrastingFuncs[1](srcRow[w + 1]);
+			sumBuffer[x * ChannelCount / n + 1] += srcRow[w + 1];
 			// R
-			sumBuffer[x * ChannelCount / n + 2] += contrastingFuncs[0](srcRow[w]);
+			sumBuffer[x * ChannelCount / n + 2] += srcRow[w];
 		}
 	}
 
@@ -279,9 +278,9 @@ void SumWindowsInRow(
 		w < (lastWindowOffsetPx + remainingWidthPx) * ChannelCount;
 		w += ChannelCount)
 	{
-		sumBuffer[lastWindowOffsetPx * ChannelCount / n] += contrastingFuncs[2](srcRow[w + 2]);
-		sumBuffer[lastWindowOffsetPx * ChannelCount / n + 1] += contrastingFuncs[1](srcRow[w + 1]);
-		sumBuffer[lastWindowOffsetPx * ChannelCount / n + 2] += contrastingFuncs[0](srcRow[w]);
+		sumBuffer[lastWindowOffsetPx * ChannelCount / n] += srcRow[w + 2];
+		sumBuffer[lastWindowOffsetPx * ChannelCount / n + 1] += srcRow[w + 1];
+		sumBuffer[lastWindowOffsetPx * ChannelCount / n + 2] += srcRow[w];
 	}
 }
 
@@ -334,20 +333,21 @@ void CalculateAvgValuesInSumBuffer(
 	}
 }
 
-
 void CopyAvgValuesToDestRowBuffer(
 	const vector<float>& avgValues, 
-	vector<uint8_t>& destRowBuffer)
+	vector<uint8_t>& destRowBuffer, 
+	const array<ContrastingFunc, ChannelCount>& contrastingFuncs)
 {
-	for (size_t i = 0; i < avgValues.size(); i++)
+	for (size_t i = 0; i < avgValues.size(); i += 3)
 	{
 		// Здесь контрастирование с uint8_t и округлением
-		destRowBuffer[i] = (uint8_t)(avgValues[i] + 0.5f);
+		destRowBuffer[i] = contrastingFuncs[2](avgValues[i]);
+		destRowBuffer[i + 1] = contrastingFuncs[1](avgValues[i + 1]);
+		destRowBuffer[i + 2] = contrastingFuncs[0](avgValues[i + 2]);
 	}
 }
 
-
-array<function<float(float)>, 3> BuildContrastingFuncs(
+array<ContrastingFunc, ChannelCount> BuildContrastingFuncs(
 	std::ifstream& input,
 	const RequiredTiffData& tiffData,
 	float minBorder, float maxBorder)
@@ -386,7 +386,7 @@ array<function<float(float)>, 3> BuildContrastingFuncs(
 		rowInStripCounter++;
 	}
 
-	return array<function<float(float)>, 3> 
+	return array<ContrastingFunc, ChannelCount>
 	{
 		BuildContrastingFunc(rHistogram, histogramSquare, minBorder, maxBorder),
 		BuildContrastingFunc(gHistogram, histogramSquare, minBorder, maxBorder),
@@ -396,8 +396,8 @@ array<function<float(float)>, 3> BuildContrastingFuncs(
 
 
 
-function<float(float)> BuildContrastingFunc(
-	const vector<uint32_t> histogram,
+ContrastingFunc BuildContrastingFunc(
+	const vector<uint32_t>& histogram,
 	uint32_t histogramSquare,
 	float minBorder, float maxBorder)
 {
@@ -418,21 +418,5 @@ function<float(float)> BuildContrastingFunc(
 		squareSum -= histogram[pseudoMax--];
 	}
 
-	if (pseudoMin >= pseudoMax)
-	{
-		// если больше, то можно поменять местами
-		// если равенство, то макс увеличить на 1, мин на 1 уменьшить или т.п.
-		return [](float value)
-			{
-				return 127.f;
-			};
-	}
-
-	// либо возвращать мин и макс, и отдельно функцию 
-	// либо отдельную функцию с 3 параметрами с
-	// сразу uint8_t и округление
-	return [pseudoMin, pseudoMax](float value)
-		{
-			return std::clamp((value - pseudoMin) * 255.f / (pseudoMax - pseudoMin), 0.f, 255.f);
-		};
+	return ContrastingFunc(histogram, histogramSquare, minBorder, maxBorder);
 }
