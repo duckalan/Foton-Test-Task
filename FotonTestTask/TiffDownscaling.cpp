@@ -36,6 +36,7 @@ void DownscaleTiffWithAvgScaling(
 	vector<uint8_t> destRowBuffer(tiffData.destStrideBytes);
 	vector<float> avgValuesBuffer(tiffData.destWidthPx * ChannelCount);
 
+	// без auto
 	auto contrastingFuncs = BuildContrastingFuncs(
 		input, tiffData, 
 		minContrastBorder, 
@@ -263,6 +264,7 @@ void SumWindowsInRow(
 			// Так как в tiff порядок rgb, здесь необходимо
 			// записывать в буфер в обратном порядке
 
+			// В конце контрастирование
 			// B
 			sumBuffer[x * ChannelCount / n] += contrastingFuncs[2](srcRow[w + 2]);
 			// G
@@ -315,6 +317,7 @@ void CalculateAvgValuesInSumBuffer(
 		k < (size_t)srcWidthPx - remainingWidthPx;
 		k += n)
 	{
+		// после деления контрастирование
 		sumBuffer[k * ChannelCount / n] /= windowSquare;
 		sumBuffer[k * ChannelCount / n + 1] /= windowSquare;
 		sumBuffer[k * ChannelCount / n + 2] /= windowSquare;
@@ -338,6 +341,7 @@ void CopyAvgValuesToDestRowBuffer(
 {
 	for (size_t i = 0; i < avgValues.size(); i++)
 	{
+		// Здесь контрастирование с uint8_t и округлением
 		destRowBuffer[i] = (uint8_t)(avgValues[i] + 0.5f);
 	}
 }
@@ -391,6 +395,7 @@ array<function<float(float)>, 3> BuildContrastingFuncs(
 }
 
 
+
 function<float(float)> BuildContrastingFunc(
 	const vector<uint32_t> histogram,
 	uint32_t histogramSquare,
@@ -415,12 +420,17 @@ function<float(float)> BuildContrastingFunc(
 
 	if (pseudoMin >= pseudoMax)
 	{
+		// если больше, то можно поменять местами
+		// если равенство, то макс увеличить на 1, мин на 1 уменьшить или т.п.
 		return [](float value)
 			{
 				return 127.f;
 			};
 	}
 
+	// либо возвращать мин и макс, и отдельно функцию 
+	// либо отдельную функцию с 3 параметрами с
+	// сразу uint8_t и округление
 	return [pseudoMin, pseudoMax](float value)
 		{
 			return std::clamp((value - pseudoMin) * 255.f / (pseudoMax - pseudoMin), 0.f, 255.f);
