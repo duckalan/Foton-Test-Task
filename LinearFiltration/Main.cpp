@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <chrono>
 #include <vector>
+#include <numeric>
 
 #include "BmpHeader.h"
 
@@ -66,8 +67,8 @@ void MirrorEdgePixelsInRow(
 	int t = kernelDim - 2;
 
 	for (int x = origWidthPx + kernelRadiusPx * 2 - 1;
-		x >= origWidthPx + kernelRadiusPx - 1;
-		x--)
+		 x >= origWidthPx + kernelRadiusPx - 1;
+		 x--)
 	{
 		expandedRows[currentRowIndexBytes + x * BytePerPx] =
 			expandedRows[currentRowIndexBytes + (x - t - 1) * BytePerPx];
@@ -82,7 +83,8 @@ void MirrorEdgePixelsInRow(
 	}
 }
 
-void FilterImage(
+
+void FilterImageWithMirroring(
 	std::filesystem::path srcPath,
 	std::filesystem::path destPath,
 	vector<float> kernel)
@@ -109,7 +111,6 @@ void FilterImage(
 	int imageWidthBytes = header.imageWidthPx * BytePerPx;
 	int rowStrideBytes = (imageWidthBytes + 3) & ~3;
 	int paddingBytesCount = rowStrideBytes - imageWidthBytes;
-	vector<uint8_t> destRowBuffer(rowStrideBytes);
 
 	// Размерность ядра
 	int kernelDim = (int)sqrt(kernel.size());
@@ -124,170 +125,154 @@ void FilterImage(
 	{
 		div += kernel[i];
 	}
+	if (div == 0)
+	{
+		div = 1;
+	}
 
 	// Длина расширенной отражёнными краевыми пикселями строки
 	int expandedWidthBytes = imageWidthBytes + kernelRadiusPx * 2 * BytePerPx;
 
 	// Дополненные отражённые пиксели будут в начале строки и конце строки
-	vector<uint8_t> srcRowsBuffer(
-		(size_t)expandedWidthBytes * kernelDim);
+	vector<uint8_t> srcRowsBufferEx(expandedWidthBytes * kernelDim);
+	vector<uint8_t> destRowBuffer(rowStrideBytes);
 
-	// Формирование первоначального буфера из первых kernelDim строк
-	// с оствавлением места под отражённые пиксели с конца одной
-	// и начала другой строки
-	for (int y = 0; y < kernelDim; y++)
+	// Формирование первоначального буфера из 
+	// первых kernelDim строк
+	src.read((char*)&srcRowsBufferEx[kernelRadiusPx * BytePerPx],
+		imageWidthBytes);
+	src.seekg(paddingBytesCount, std::ios_base::cur);
+	MirrorEdgePixelsInRow(srcRowsBufferEx, 0, kernelDim);
+
+	for (int y = 1; y < kernelDim; y++)
 	{
-		src.read((char*)&srcRowsBuffer[
-			expandedWidthBytes * y + kernelRadiusPx * BytePerPx],
+		src.read((char*)&srcRowsBufferEx[kernelRadiusPx * BytePerPx + expandedWidthBytes * y],
 			imageWidthBytes);
 
 		src.seekg(paddingBytesCount, std::ios_base::cur);
 
-		MirrorEdgePixelsInRow(srcRowsBuffer, y, kernelDim);
+		MirrorEdgePixelsInRow(srcRowsBufferEx, y, kernelDim);
 	}
 
-	// Индекс текущего веса в ядре
-	int kernelIndex = 0;
-	float sumB = 0;
-	float sumG = 0;
-	float sumR = 0;
-
-	for (int y = 0; y < header.imageHeightPx; y++)
+	// Обработка первых kernelRadiusPx строк с отражением
+	for (int y = 0; y < kernelRadiusPx; y++)
 	{
+		int xWindowOffsetPx = 0;
 		for (int x = kernelRadiusPx; x < header.imageWidthPx + kernelRadiusPx; x++)
 		{
-			int currY = y;
-			if (y < kernelRadiusPx)
-			{
-				currY = kernelRadiusPx - y;
-			}
-
-			for (int i = -kernelRadiusPx; i <= kernelRadiusPx; i++)
-			{
-				for (int j = -kernelRadiusPx; j <= kernelRadiusPx; j++)
-				{
-					sumB += kernel[kernelIndex] *
-						srcRowsBuffer[(y - i) * expandedWidthBytes + (x - j) * BytePerPx];
-
-					sumG += kernel[kernelIndex] *
-						srcRowsBuffer[(y - i) * expandedWidthBytes + (x - j) * BytePerPx + 1];
-
-					sumR += kernel[kernelIndex] *
-						srcRowsBuffer[(y - i) * expandedWidthBytes + (x - j) * BytePerPx + 2];
-
-					kernelIndex++;
-				}
-			}
-			kernelIndex = 0;
-		}
-	}
-
-
-	for (int y = 0; y < header.imageHeightPx; y++)
-	{
-		// Цикл по основным, неотражённым пикселям строки
-		for (int x = kernelRadiusPx; x < header.imageWidthPx + kernelRadiusPx; x++)
-		{
-			for (int i = -kernelRadiusPx; i < kernelRadiusPx; i++)
-			{
-				for (int j = -kernelRadiusPx; j < kernelRadiusPx; j++)
-				{
-					//kernel[(kernelDim - i) * kernelDim - 1 - j] 
-
-					sumB += kernel[kernelIndex] *
-						srcRowsBuffer[(y - i) * imageWidthBytes + (x - j) * BytePerPx];
-
-					sumG += kernel[kernelIndex] *
-						srcRowsBuffer[(y - i) * imageWidthBytes + (x - j) * BytePerPx + 1];
-
-					sumR += kernel[kernelIndex] *
-						srcRowsBuffer[(y - i) * imageWidthBytes + (x - j) * BytePerPx + 2];
-
-					kernelIndex++;
-				}
-			}
-		}
-	}
-
-	// Обработка отражённых первых строк, выходящих за изображение
-	for (int y = kernelRadiusPx; y >= 0; y--)
-	{
-		// Цикл по основным, неотражённым пикселям строки
-		for (int x = kernelRadiusPx; x < header.imageWidthPx + kernelRadiusPx; x++)
-		{
-			// Свёртка
-			for (int i = 0; i < kernelRadiusPx; i++)
-			{
-				for (int i = -kernelRadiusPx; i < kernelRadiusPx; i++)
-				{
-
-				}
-
-				for (int j = -kernelRadiusPx; j < kernelRadiusPx; i++)
-				{
-					//kernel[(kernelDim - i) * kernelDim - 1 - j] 
-
-					sumB += kernel[kernelIndex] *
-						srcRowsBuffer[(y + i) * imageWidthBytes + (j + x) * BytePerPx];
-
-					sumG += kernel[kernelIndex] *
-						srcRowsBuffer[y * imageWidthBytes + (j + x) * BytePerPx + 1];
-
-					sumR += kernel[kernelIndex] *
-						srcRowsBuffer[y * imageWidthBytes + (j + x) * BytePerPx + 2];
-
-					kernelIndex--;
-				}
-
-				for (int j = 0; j < kernelDim; j++)
-				{
-					sumB += kernel[(kernelDim - i) * kernelDim - 1 - j] *
-						srcRowsBuffer[(y + i) * imageWidthBytes + (x - j) * BytePerPx];
-
-					sumG += kernel[(kernelDim - i) * kernelDim - 1 - j] *
-						srcRowsBuffer[y * imageWidthBytes + x + 1];
-
-					sumR += kernel[(kernelDim - i) * kernelDim - 1 - j] *
-						srcRowsBuffer[y * imageWidthBytes + x + 2];
-
-					kernelIndex++;
-				}
-			}
-		}
-	}
-
-	// Обработка оставшихся первых строк
-	// ...
-
-	for (int y = 0; y < kernelDim; y++)
-	{
-		for (int x = 0; x < header.imageWidthPx; x++)
-		{
+			// Индекс текущего веса в ядре
 			int kernelIndex = 0;
+
 			float sumB = 0;
 			float sumG = 0;
 			float sumR = 0;
 
+			// Свёртка
 			for (int i = 0; i < kernelDim; i++)
 			{
-				for (int j = 0; j < kernelDim; j++)
+				// Отражение
+				int currentY = 0;
+				if (y < kernelRadiusPx && i < kernelRadiusPx - y)
 				{
+					currentY = kernelRadiusPx - i + y;
+				}
+				else
+				{
+					currentY = i - kernelRadiusPx + y;
+				}
 
+				for (int j = xWindowOffsetPx; j < xWindowOffsetPx + kernelDim; j++)
+				{
+					sumB += kernel[kernelIndex] *
+						srcRowsBufferEx[currentY * expandedWidthBytes + j * BytePerPx];
+
+					sumG += kernel[kernelIndex] *
+						srcRowsBufferEx[currentY * expandedWidthBytes + j * BytePerPx + 1];
+
+					sumR += kernel[kernelIndex] *
+						srcRowsBufferEx[currentY * expandedWidthBytes + j * BytePerPx + 2];
+
+					kernelIndex++;
 				}
 			}
 
+			// x - kernelRadiusPx, т.к. основное изображение смещено на kernelRadiusPx
+			destRowBuffer[(x - kernelRadiusPx) * BytePerPx] = (uint8_t)std::clamp(sumB / div, 0.f, 255.f);
+			destRowBuffer[(x - kernelRadiusPx) * BytePerPx + 1] = (uint8_t)std::clamp(sumG / div, 0.f, 255.f);
+			destRowBuffer[(x - kernelRadiusPx) * BytePerPx + 2] = (uint8_t)std::clamp(sumR / div, 0.f, 255.f);
 
-			destRowBuffer[y * imageWidthBytes + x] = (uint8_t)(sumB / div + 0.5f);
-			destRowBuffer[y * imageWidthBytes + x + 1] = (uint8_t)(sumG / div + 0.5f);
-			destRowBuffer[y * imageWidthBytes + x + 2] = (uint8_t)(sumR / div + 0.5f);
+			xWindowOffsetPx++;
 		}
+
+		dest.write((char*)destRowBuffer.data(), rowStrideBytes);
 	}
 
-	int firstRowOffset = 0;
-
-	for (int y = kernelDim; y < header.imageHeightPx; y++)
+	// Обработка строк до kernelRadiusPx с конца без отражений строк
+	int firstRowIndex = 0;
+	int t = 0;
+	for (int y = kernelRadiusPx; y < header.imageHeightPx; y++)
 	{
-		firstRowOffset = (firstRowOffset + 1) % kernelDim;
+		int xWindowOffsetPx = 0;
+		for (int x = kernelRadiusPx; x < header.imageWidthPx + kernelRadiusPx; x++)
+		{
+			// Индекс текущего веса в ядре
+			int kernelIndex = 0;
+
+			float sumB = 0;
+			float sumG = 0;
+			float sumR = 0;
+
+			// Свёртка
+			for (int i = 0; i < kernelDim; i++)
+			{
+				int currentY = (i + firstRowIndex) % kernelDim;
+				if (y > header.imageHeightPx - kernelRadiusPx - 1 && 
+					i > kernelDim - 1 - ( kernelRadiusPx - (header.imageHeightPx - y - 1)))
+				{
+					currentY = (i + firstRowIndex - kernelRadiusPx + t) % kernelDim;
+				}
+
+				for (int j = xWindowOffsetPx; j < xWindowOffsetPx + kernelDim; j++)
+				{
+					sumB += kernel[kernelIndex] *
+						srcRowsBufferEx[currentY * expandedWidthBytes + j * BytePerPx];
+
+					sumG += kernel[kernelIndex] *
+						srcRowsBufferEx[currentY * expandedWidthBytes + j * BytePerPx + 1];
+
+					sumR += kernel[kernelIndex] *
+						srcRowsBufferEx[currentY * expandedWidthBytes + j * BytePerPx + 2];
+
+					kernelIndex++;
+				}
+			}
+
+			if (sumR != 0 && sumB < 10 && sumG < 10)
+			{
+				int a = 65;
+				int b = a;
+			}
+			destRowBuffer[(x - kernelRadiusPx) * BytePerPx] = (uint8_t)std::clamp(sumB / div, 0.f, 255.f);
+			destRowBuffer[(x - kernelRadiusPx) * BytePerPx + 1] = (uint8_t)std::clamp(sumG / div, 0.f, 255.f);
+			destRowBuffer[(x - kernelRadiusPx) * BytePerPx + 2] = (uint8_t)std::clamp(sumR / div, 0.f, 255.f);
+
+			xWindowOffsetPx++;
+		}
+
+		if (y > header.imageHeightPx - kernelRadiusPx - 1)
+		{
+			t++;
+		}
+
+		// Запись следующей строки на место первой
+		src.read((char*)&srcRowsBufferEx[kernelRadiusPx * BytePerPx + expandedWidthBytes * firstRowIndex], imageWidthBytes);
+		src.seekg(paddingBytesCount, std::ios_base::cur);
+		MirrorEdgePixelsInRow(srcRowsBufferEx, firstRowIndex, kernelDim);
+
+		// Вторая становится первой и т.д.
+		firstRowIndex = (firstRowIndex + 1) % kernelDim;
+
+		dest.write((char*)destRowBuffer.data(), rowStrideBytes);
 	}
 }
 
@@ -337,144 +322,25 @@ void FilterImageNoMirror(
 	vector<uint8_t> srcRowsBuffer((size_t)imageWidthBytes * kernelDim);
 	vector<uint8_t> destRowBuffer(rowStrideBytes);
 
-	// Формирование первоначального буфера из первых kernelDim строк
-	for (int y = 0; y < kernelDim; y++)
-	{
-		src.read((char*)&srcRowsBuffer[imageWidthBytes * y],
-			imageWidthBytes);
-
-		src.seekg(paddingBytesCount, std::ios_base::cur);
-	}
-
-	int firstRowIndex = -1;
-
-	for (int y = kernelRadiusPx; y < header.imageHeightPx - kernelRadiusPx; y++)
-	{
-		if (y == kernelRadiusPx)
-		{
-			firstRowIndex = 0;
-		}
-		else
-		{
-			firstRowIndex = ((y - kernelRadiusPx) + 1) % kernelDim;
-		}
-
-		for (int x = kernelRadiusPx; x < header.imageWidthPx - kernelRadiusPx; x++)
-		{
-			// Индекс текущего веса в ядре
-			int kernelIndex = 0;
-
-			float sumB = 0;
-			float sumG = 0;
-			float sumR = 0;
-
-			/*for (int i = -kernelRadiusPx; i <= kernelRadiusPx; i++)
-			{
-				for (int j = -kernelRadiusPx; j <= kernelRadiusPx; j++)
-				{
-					sumB += kernel[(i + kernelRadiusPx) * kernelDim + (j + kernelRadiusPx)]
-						*
-				}
-			}*/
-		
-
-			// Свёртка
-			for (int i = -kernelRadiusPx; i <= kernelRadiusPx; i++)
-			{
-				for (int j = -kernelRadiusPx; j <= kernelRadiusPx; j++)
-				{
-
-					sumB += kernel[(i + kernelRadiusPx) * kernelDim + (j + kernelRadiusPx)] *
-						srcRowsBuffer[(y + firstRowIndex - i) * imageWidthBytes + (x - j) * BytePerPx];
-
-					sumG += kernel[(i + kernelRadiusPx) * kernelDim + (j + kernelRadiusPx)] *
-						srcRowsBuffer[(y + firstRowIndex - i) * imageWidthBytes + (x - j) * BytePerPx + 1];
-
-					sumR += kernel[(i + kernelRadiusPx) * kernelDim + (j + kernelRadiusPx)] *
-						srcRowsBuffer[(y + firstRowIndex - i) * imageWidthBytes + (x - j) * BytePerPx + 2];
-
-					kernelIndex++;
-				}
-			}
-
-			destRowBuffer[x * BytePerPx] = (uint8_t)(sumB / div + 0.5f);
-			destRowBuffer[x * BytePerPx + 1] = (uint8_t)(sumG / div + 0.5f);
-			destRowBuffer[x * BytePerPx + 2] = (uint8_t)(sumR / div + 0.5f);
-		}
-
-		src.read((char*)&srcRowsBuffer[imageWidthBytes * firstRowIndex],
-			imageWidthBytes);
-		src.seekg(paddingBytesCount, std::ios_base::cur);
-
-		dest.write((char*)destRowBuffer.data(), rowStrideBytes);
-	}
-}
-
-void FilterImageSimple(
-	std::filesystem::path srcPath,
-	std::filesystem::path destPath,
-	vector<float> kernel) 
-{
-	std::ifstream src(srcPath, std::ios::binary);
-	std::ofstream dest(destPath, std::ios::binary);
-
-	if (!src.is_open())
-	{
-		std::string errorMessage = "Can't find or open file with input path: ";
-		throw std::invalid_argument(errorMessage + srcPath.string());
-	}
-	if (!dest.is_open())
-	{
-		std::string errorMessage = "Can't save file with output path: ";
-		throw std::invalid_argument(errorMessage + destPath.string());
-	}
-
-	BmpHeader header{};
-
-	src.read((char*)&header, sizeof(header));
-	dest.write((char*)&header, sizeof(header));
-
-	int imageWidthBytes = header.imageWidthPx * BytePerPx;
-	int rowStrideBytes = (imageWidthBytes + 3) & ~3;
-	int paddingBytesCount = rowStrideBytes - imageWidthBytes;
-
-	// Размерность ядра
-	int kernelDim = (int)sqrt(kernel.size());
-
-	// Расстояние от центрального элемента до конца стороны
-	int kernelRadiusPx = (kernelDim - 1) / 2;
-
-	// Нормировочный коэффициент ядра
-	float div = 0;
-
-	for (int i = 0; i < kernel.size(); i++)
-	{
-		div += kernel[i];
-	}
-
-	vector<uint8_t> srcRowsBuffer((size_t)imageWidthBytes * kernelDim);
-	vector<uint8_t> destRowBuffer(rowStrideBytes);
-
-	// Формирование первоначального буфера из первых kernelDim строк
-	
+	// Заполнение первых пустых строк
 	for (int y = 0; y < kernelRadiusPx; y++)
 	{
 		dest.write((char*)destRowBuffer.data(), rowStrideBytes);
 	}
 
-	int cnt1 = 0;
+	// Формирование первоначального буфера из 
+	// первых kernelDim строк
+	for (int i = 0; i < kernelDim; i++)
+	{
+		src.read((char*)&srcRowsBuffer[imageWidthBytes * i],
+			imageWidthBytes);
+
+		src.seekg(paddingBytesCount, std::ios_base::cur);
+	}
+
+	int firstRowIndex = 0;
 	for (int y = kernelRadiusPx; y < header.imageHeightPx - kernelRadiusPx; y++)
 	{
-		src.seekg(54 + rowStrideBytes * cnt1++);
-		// Чтение kernelDim строк
-		for (int i = 0; i < kernelDim; i++)
-		{
-			src.read((char*)&srcRowsBuffer[imageWidthBytes * i],
-				imageWidthBytes);
-
-			src.seekg(paddingBytesCount, std::ios_base::cur);
-		}
-
 		int xWindowOffsetPx = 0;
 		for (int x = kernelRadiusPx; x < header.imageWidthPx - kernelRadiusPx; x++)
 		{
@@ -488,28 +354,41 @@ void FilterImageSimple(
 			// Свёртка
 			for (int i = 0; i < kernelDim; i++)
 			{
+				int currentRowIndex = (i + firstRowIndex) % kernelDim;
+
 				for (int j = xWindowOffsetPx; j < xWindowOffsetPx + kernelDim; j++)
 				{
 					sumB += kernel[kernelIndex] *
-						srcRowsBuffer[(i) * imageWidthBytes + (j) * BytePerPx];
+						srcRowsBuffer[currentRowIndex * imageWidthBytes + j * BytePerPx];
 
 					sumG += kernel[kernelIndex] *
-						srcRowsBuffer[(i) * imageWidthBytes + (j) * BytePerPx + 1];
+						srcRowsBuffer[currentRowIndex * imageWidthBytes + j * BytePerPx + 1];
 
 					sumR += kernel[kernelIndex] *
-						srcRowsBuffer[(i) * imageWidthBytes + (j) * BytePerPx + 2];
+						srcRowsBuffer[currentRowIndex * imageWidthBytes + j * BytePerPx + 2];
 
 					kernelIndex++;
 				}
 			}
+
+			destRowBuffer[x * BytePerPx] = (uint8_t)std::clamp(sumB / div, 0.f, 255.f);
+			destRowBuffer[x * BytePerPx + 1] = (uint8_t)std::clamp(sumG / div, 0.f, 255.f);
+			destRowBuffer[x * BytePerPx + 2] = (uint8_t)std::clamp(sumR / div, 0.f, 255.f);
+
 			xWindowOffsetPx++;
-			destRowBuffer[x * BytePerPx] = (uint8_t)(sumB / div + 0.5f);
-			destRowBuffer[x * BytePerPx + 1] = (uint8_t)(sumG / div + 0.5f);
-			destRowBuffer[x * BytePerPx + 2] = (uint8_t)(sumR / div + 0.5f);
 		}
+
+		// Запись следующей строки на место первой
+		src.read((char*)&srcRowsBuffer[imageWidthBytes * firstRowIndex], imageWidthBytes);
+		src.seekg(paddingBytesCount, std::ios_base::cur);
+
+		// Вторая становится первой и т.д.
+		firstRowIndex = (firstRowIndex + 1) % kernelDim;
+
 		dest.write((char*)destRowBuffer.data(), rowStrideBytes);
 	}
 
+	// Заполнение последних пустых строк
 	std::fill(std::begin(destRowBuffer), std::end(destRowBuffer), 0u);
 	for (int y = 0; y < kernelRadiusPx; y++)
 	{
@@ -519,14 +398,20 @@ void FilterImageSimple(
 
 int main()
 {
-	const int n = 3;
-	vector<float> kernel(n * n, 1.f);
+	const int n = 5;
+	//vector<float> kernel(n * n, 1.f);
+	vector<float> kernel
+	{
+		0, -1, 0,
+		-1, 4, -1,
+		0, -1, 0,
+	};
 
 	try
 	{
 		auto now = high_resolution_clock::now();
 
-		FilterImageSimple(
+		FilterImageWithMirroring(
 			"H:\\ImageTest\\test2.bmp",
 			"H:\\ImageTest\\filterOutput.bmp",
 			kernel);
