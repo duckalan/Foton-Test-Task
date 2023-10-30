@@ -29,7 +29,7 @@ void MirrorEdgePixelsInRow(
 	// Левый край
 	for (int x = 0; x < kernel.HorizontalRadius(); x++)
 	{
-		int mirrorX = kernel.Height() - 2 - x;
+		int mirrorX = kernel.HorizontalRadius() * 2 - 1 - x;
 
 		expandedRows[currentRowIndexBytes + x * BytePerPx] =
 			expandedRows[currentRowIndexBytes + mirrorX * BytePerPx];
@@ -123,7 +123,9 @@ void FilterImage(
 
 		MirrorEdgePixelsInRow(srcRowsBufferEx, bufferY, header.imageWidthPx, kernel);
 	}
-	src.seekg(header.imageOffsetBytes);
+
+	// Переход к kernel.VerticalRadius() + 1 строке
+	src.seekg(header.imageOffsetBytes + rowStrideBytes * (kernel.VerticalRadius() + 1));
 
 	// Индекс первой строки в буфере
 	int firstRowIndex = 0;
@@ -177,10 +179,9 @@ void FilterImage(
 		int imageY = y;
 		if (y >= header.imageHeightPx - 1)
 		{
-			imageY = 2 * header.imageHeightPx - y - 1;
-			src.seekg(header.imageOffsetBytes + (rowStrideBytes * imageY));
+			imageY = 2 * header.imageHeightPx - 2 - y;
+			src.seekg(header.imageOffsetBytes + rowStrideBytes * imageY);
 		}
-
 		// Запись следующей строки на место первой
 		src.read(
 			(char*)&srcRowsBufferEx[kernel.HorizontalRadius() * BytePerPx
@@ -198,19 +199,16 @@ void FilterImage(
 
 int main()
 {
-	const int n = 3;
-	Kernel kernel(n, n, {
-		0, -1, 0,
-		-1, 4, -1,
-		0, -1, 0
-		});
+	const int m = 1;
+	const int n = 1;
+	Kernel kernel(m, n, { 1 });
 
 	try
 	{
 		auto now = high_resolution_clock::now();
 
 		FilterImage(
-			"H:\\ImageTest\\test2.bmp",
+			"H:\\ImageTest\\test1.bmp",
 			"H:\\ImageTest\\filterOutput.bmp",
 			kernel);
 

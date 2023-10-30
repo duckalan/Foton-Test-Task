@@ -78,15 +78,15 @@ void DownscaleBmpWithAvgScailing(
 	vector<uint8_t> outputRowBuffer(info.outputStride);
 	vector<float> avgValuesBuffer(info.outputWidth * BytePerPx);
 
-	// Количество пикселей в столбце в последнем окне
+	// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
 	int remainingHeight = info.inputHeight % n;
 
-	// Количество пикселей в строке в последнем окне
+	// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
 	int remainingWidth = info.inputWidth % n;
 
 	for (size_t i = 0; i < info.inputHeight - remainingHeight; i += n)
 	{
-		// Вычисление сумм
+		// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
 		for (size_t j = 0; j < n; j++)
 		{
 			input.read((char*)inputRowBuffer.data(), info.inputWidth * BytePerPx);
@@ -110,11 +110,11 @@ void DownscaleBmpWithAvgScailing(
 
 		output.write((char*)outputRowBuffer.data(), info.outputStride);
 
-		// Обнуление буффера средних значений
+		// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 		std::fill(begin(avgValuesBuffer), end(avgValuesBuffer), 0.f);
 	}
 
-	// Обработка оставшихся строк
+	// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
 	if (remainingHeight != 0)
 	{
 		for (size_t j = 0; j < remainingHeight; j++)
@@ -152,7 +152,7 @@ void SumWindowsInRow(
 {
 	int remainingWidth = inputImageWidthInPixels % n;
 
-	// Попиксельный проход вдоль строки по окнам и подсчёт суммы
+	// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
 	for (size_t x = 0;
 		x < inputImageWidthInPixels - remainingWidth;
 		x += n)
@@ -167,7 +167,7 @@ void SumWindowsInRow(
 
 	size_t lastWindowOffset = inputImageWidthInPixels - remainingWidth;
 
-	// Суммирование значений оставшихся пикселей
+	// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 	for (size_t w = lastWindowOffset * BytePerPx;
 		w < (lastWindowOffset + remainingWidth) * BytePerPx;
 		w += BytePerPx)
@@ -184,7 +184,7 @@ void SumWindowsInRow(
 //	bool isTopEdge,
 //	int n)
 //{
-//	// Количество пикселей в строке в последнем окне
+//	// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
 //	int remainingWidth = srcW % n;
 //
 //	int windowSquare;
@@ -192,10 +192,10 @@ void SumWindowsInRow(
 //
 //	if (isTopEdge)
 //	{
-//		// Количество пикселей в столбце в последнем окне
+//		// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
 //		int remainingHeight = srcH % n;
 //
-//		// перенести высоту сюда
+//		// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
 //		windowSquare = n * remainingHeight;
 //		lastWindowSquare = remainingWidth * remainingHeight;
 //	}
@@ -205,7 +205,7 @@ void SumWindowsInRow(
 //		lastWindowSquare = remainingWidth * n;
 //	}
 //
-//	// Нахождение средних значений
+//	// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 //	for (size_t k = 0;
 //		k < (size_t)srcW - remainingWidth;
 //		k += n)
@@ -215,7 +215,7 @@ void SumWindowsInRow(
 //		sumBuffer[k * BytePerPx / n + 2] /= windowSquare;
 //	}
 //
-//	// Нахождение средних значений у оставшейся части пикселей
+//	// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 //	if (remainingWidth != 0)
 //	{
 //		size_t lastPixelOffset = (size_t)srcW - remainingWidth;
