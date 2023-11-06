@@ -99,36 +99,35 @@ void FilterImage(
 	vector<uint8_t> srcRowsBufferEx(expandedWidthBytes * kernel.Height());
 	vector<uint8_t> destRowBuffer(rowStrideBytes);
 
+	src.seekg(header.imageOffsetBytes);
 	// Формирование первоначального буфера строк с отражением
 	// 1 0 0 1 2
-	for (int bufferY = 0; bufferY < kernel.Height(); bufferY++)
+	for (int bufferY = kernel.VerticalRadius(); bufferY < kernel.Height(); bufferY++)
 	{
-		int imageY;
-
-		// Отражение
-		if (bufferY < kernel.VerticalRadius())
-		{
-			imageY = kernel.VerticalRadius() - 1 - bufferY;
-		}
-		else
-		{
-			imageY = bufferY - kernel.VerticalRadius();
-		}
-
-		src.seekg(header.imageOffsetBytes + imageY * (imageWidthBytes + paddingBytesCount));
+		int imageY = bufferY - kernel.VerticalRadius();
 
 		src.read((char*)&srcRowsBufferEx[
 			kernel.HorizontalRadius() * BytePerPx + expandedWidthBytes * bufferY],
 			imageWidthBytes);
+		src.seekg(paddingBytesCount, std::ios_base::cur);
 
 		MirrorEdgePixelsInRow(srcRowsBufferEx, bufferY, header.imageWidthPx, kernel);
 	}
 
-	// Переход к kernel.VerticalRadius() + 1 строке
-	src.seekg(header.imageOffsetBytes + rowStrideBytes * (kernel.VerticalRadius() + 1));
+	// Отражение
+	for (int bufferY = 0; bufferY < kernel.VerticalRadius(); bufferY++)
+	{
+		int y = 2 * kernel.VerticalRadius() - 1 - bufferY;
+
+		std::copy(srcRowsBufferEx.data() + y * expandedWidthBytes,
+			srcRowsBufferEx.data() + (y + 1) * expandedWidthBytes,
+			srcRowsBufferEx.data() + bufferY * expandedWidthBytes);
+	}
 
 	// Индекс первой строки в буфере
 	int firstRowIndex = 0;
+	int oldFirstRowIndex = 0;
+	int bufIndexToCopy = 0;
 
 	for (int y = kernel.VerticalRadius();
 		y < header.imageHeightPx + kernel.VerticalRadius();
@@ -176,18 +175,28 @@ void FilterImage(
 		}
 
 		// Отражение 
-		int imageY = y;
+		//int imageY = y + 1;
 		if (y >= header.imageHeightPx - 1)
 		{
-			imageY = 2 * header.imageHeightPx - 2 - y;
-			src.seekg(header.imageOffsetBytes + rowStrideBytes * imageY);
+			if (y == header.imageHeightPx - 1)
+			{
+				oldFirstRowIndex = firstRowIndex;
+			}
+			int imageY = 2 * header.imageHeightPx - 2 - y;
+			bufIndexToCopy = abs(oldFirstRowIndex - (header.imageHeightPx - imageY)) % kernel.Height();
+
+			std::copy(srcRowsBufferEx.data() + bufIndexToCopy * expandedWidthBytes,
+				srcRowsBufferEx.data() + (bufIndexToCopy + 1) * expandedWidthBytes,
+				srcRowsBufferEx.data() + firstRowIndex * expandedWidthBytes);
 		}
-		// Запись следующей строки на место первой
-		src.read(
-			(char*)&srcRowsBufferEx[kernel.HorizontalRadius() * BytePerPx
-			+ expandedWidthBytes * firstRowIndex],
-			imageWidthBytes);
-		src.seekg(paddingBytesCount, std::ios_base::cur);
+		else
+		{
+			src.read(
+				(char*)&srcRowsBufferEx[kernel.HorizontalRadius() * BytePerPx
+				+ expandedWidthBytes * firstRowIndex],
+				imageWidthBytes);
+			src.seekg(paddingBytesCount, std::ios_base::cur);
+		}
 		MirrorEdgePixelsInRow(srcRowsBufferEx, firstRowIndex, header.imageWidthPx, kernel);
 
 		// Вторая становится первой и т.д.
@@ -197,11 +206,181 @@ void FilterImage(
 	}
 }
 
+void ApplySobelOperator(
+	std::filesystem::path srcPath,
+	std::filesystem::path destPath)
+{
+	std::ifstream src(srcPath, std::ios::binary);
+	if (!src.is_open())
+	{
+		std::string errorMessage = "Can't find or open file with input path: ";
+		throw std::invalid_argument(errorMessage + srcPath.string());
+	}
+	std::ofstream dest(destPath, std::ios::binary);
+	if (!dest.is_open())
+	{
+		std::string errorMessage = "Can't save file with output path: ";
+		throw std::invalid_argument(errorMessage + destPath.string());
+	}
+
+	BmpHeader header{};
+	src.read((char*)&header, sizeof(header));
+
+	Kernel gx(3, 3, {
+		-1, 0, 1,
+		-2, 0, 2,
+		-1, 0, 1
+		});
+
+	Kernel gy(3, 3, {
+		 1,  2,  1,
+		 0,  0,  0,
+		-1, -2, -1
+		});
+
+	// Проверка на возможность отражения
+	if (gx.HorizontalRadius() > header.imageWidthPx ||
+		gx.VerticalRadius() > header.imageHeightPx)
+	{
+		throw std::invalid_argument("Изображение слишком мало");
+	}
+
+	dest.write((char*)&header, sizeof(header));
+
+	int imageWidthBytes = header.imageWidthPx * BytePerPx;
+	int rowStrideBytes = (imageWidthBytes + 3) & ~3;
+	int paddingBytesCount = rowStrideBytes - imageWidthBytes;
+
+	// Длина расширенной отражёнными краевыми пикселями строки
+	int expandedWidthBytes = imageWidthBytes + gx.HorizontalRadius() * 2 * BytePerPx;
+
+	vector<uint8_t> srcRowsBufferEx(expandedWidthBytes * gx.Height());
+	vector<uint8_t> destRowBuffer(rowStrideBytes);
+
+	src.seekg(header.imageOffsetBytes);
+	// Формирование первоначального буфера строк с отражением
+	// 1 0 0 1 2
+	for (int bufferY = gx.VerticalRadius(); bufferY < gx.Height(); bufferY++)
+	{
+		int imageY = bufferY - gx.VerticalRadius();
+
+		src.read((char*)&srcRowsBufferEx[
+			gx.HorizontalRadius() * BytePerPx + expandedWidthBytes * bufferY],
+			imageWidthBytes);
+		src.seekg(paddingBytesCount, std::ios_base::cur);
+
+		MirrorEdgePixelsInRow(srcRowsBufferEx, bufferY, header.imageWidthPx, gx);
+	}
+
+	// Отражение
+	for (int bufferY = 0; bufferY < gx.VerticalRadius(); bufferY++)
+	{
+		int y = 2 * gx.VerticalRadius() - 1 - bufferY;
+
+		std::copy(srcRowsBufferEx.data() + y * expandedWidthBytes,
+			srcRowsBufferEx.data() + (y + 1) * expandedWidthBytes,
+			srcRowsBufferEx.data() + bufferY * expandedWidthBytes);
+	}
+
+	// Индекс первой строки в буфере
+	int firstRowIndex = 0;
+	int oldFirstRowIndex = 0;
+	int bufIndexToCopy = 0;
+
+	for (int y = gx.VerticalRadius();
+		y < header.imageHeightPx + gx.VerticalRadius();
+		y++)
+	{
+		int xOffsetPx = 0;
+
+		for (int x = gx.HorizontalRadius();
+			x < header.imageWidthPx + gx.HorizontalRadius();
+			x++)
+		{
+			float xSumB = 0;
+			float xSumG = 0;
+			float xSumR = 0;
+
+			float ySumB = 0;
+			float ySumG = 0;
+			float ySumR = 0;
+
+			// Свёртка
+			for (int i = 0; i < gx.Height(); i++)
+			{
+				int currentRowIndex = (i + firstRowIndex) % gx.Height();
+
+				for (int j = xOffsetPx; j < xOffsetPx + gx.Width(); j++)
+				{
+					xSumB += gx(i, j - xOffsetPx) *
+						srcRowsBufferEx[currentRowIndex * expandedWidthBytes + j * BytePerPx];
+
+					xSumG += gx(i, j - xOffsetPx) *
+						srcRowsBufferEx[currentRowIndex * expandedWidthBytes + j * BytePerPx + 1];
+
+					xSumR += gx(i, j - xOffsetPx) *
+						srcRowsBufferEx[currentRowIndex * expandedWidthBytes + j * BytePerPx + 2];
+
+					ySumB += gy(i, j - xOffsetPx) *
+						srcRowsBufferEx[currentRowIndex * expandedWidthBytes + j * BytePerPx];
+
+					ySumG += gy(i, j - xOffsetPx) *
+						srcRowsBufferEx[currentRowIndex * expandedWidthBytes + j * BytePerPx + 1];
+
+					ySumR += gy(i, j - xOffsetPx) *
+						srcRowsBufferEx[currentRowIndex * expandedWidthBytes + j * BytePerPx + 2];
+				}
+			}
+
+			destRowBuffer[(x - gx.HorizontalRadius()) * BytePerPx]
+				= (uint8_t)std::clamp(sqrtf(xSumB * xSumB + ySumB * ySumB) + 0.5f, 0.f, 255.f);
+
+			destRowBuffer[(x - gx.HorizontalRadius()) * BytePerPx + 1]
+				= (uint8_t)std::clamp(sqrtf(xSumG * xSumG + ySumG * ySumG) + 0.5f, 0.f, 255.f);
+
+			destRowBuffer[(x - gx.HorizontalRadius()) * BytePerPx + 2]
+				= (uint8_t)std::clamp(sqrtf(xSumR * xSumR + ySumR * ySumR) + 0.5f, 0.f, 255.f);
+
+			xOffsetPx++;
+		}
+
+		// Отражение 
+		//int imageY = y + 1;
+		if (y >= header.imageHeightPx - 1)
+		{
+			if (y == header.imageHeightPx - 1)
+			{
+				oldFirstRowIndex = firstRowIndex;
+			}
+			int imageY = 2 * header.imageHeightPx - 2 - y;
+			bufIndexToCopy = abs(oldFirstRowIndex - (header.imageHeightPx - imageY)) % gx.Height();
+
+			std::copy(srcRowsBufferEx.data() + bufIndexToCopy * expandedWidthBytes,
+				srcRowsBufferEx.data() + (bufIndexToCopy + 1) * expandedWidthBytes,
+				srcRowsBufferEx.data() + firstRowIndex * expandedWidthBytes);
+		}
+		else
+		{
+			src.read(
+				(char*)&srcRowsBufferEx[gx.HorizontalRadius() * BytePerPx
+				+ expandedWidthBytes * firstRowIndex],
+				imageWidthBytes);
+			src.seekg(paddingBytesCount, std::ios_base::cur);
+		}
+		MirrorEdgePixelsInRow(srcRowsBufferEx, firstRowIndex, header.imageWidthPx, gx);
+
+		// Вторая становится первой и т.д.
+		firstRowIndex = (firstRowIndex + 1) % gx.Height();
+
+		dest.write((char*)destRowBuffer.data(), rowStrideBytes);
+	}
+}
+
 int main()
 {
-	const int m = 1;
-	const int n = 1;
-	Kernel kernel(m, n, { 1 });
+	const int m = 5;
+	const int n = 5;
+	Kernel kernel(m, n, vector<float>(m * n, 1.f / (m * n)));
 
 	try
 	{
@@ -209,8 +388,13 @@ int main()
 
 		FilterImage(
 			"H:\\ImageTest\\test1.bmp",
-			"H:\\ImageTest\\filterOutput.bmp",
+			"H:\\ImageTest\\test1O.bmp",
 			kernel);
+
+		ApplySobelOperator(
+			"H:\\ImageTest\\test1.bmp",
+			"H:\\ImageTest\\test1Sobely.bmp"
+		);
 
 		auto resultTime = duration_cast<milliseconds>(high_resolution_clock::now() - now);
 		std::cout << "Filtering has been completed in " << resultTime.count() << " ms.\n";
