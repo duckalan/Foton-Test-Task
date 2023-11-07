@@ -18,6 +18,7 @@ public:
 	Kernel(int height, int width, std::vector<float> kernel);
 
 	int Height() const noexcept;
+
 	int Width() const noexcept;
 
 	// Расстояние от центрального элемента до верхнего/нижнего края ядра
