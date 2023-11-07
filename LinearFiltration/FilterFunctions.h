@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <vector>
 #include <numeric>
+#include <numbers>
 
 #include "Kernel.h"
 #include "BmpHeader.h"
@@ -419,7 +420,57 @@ void ApplySobelOperator(
 	2 фильтра, также нормируем и формируем их.
 */
 
-void CreateGaussianBlur2DKernel(int height, int width)
+Kernel CreateGaussianBlurKernel(int height, int width)
+{
+	vector<float> kernel(height * width);
+	int verticalRadius = height / 2;
+	int horizontalRadius = width / 2;
+
+	float sigmaY = verticalRadius / 3.f;
+	float sigmaX = horizontalRadius / 3.f;
+
+	int endY = verticalRadius;
+	if (height % 2 == 0)
+	{
+		endY -= 1;
+	}
+
+	int endX = horizontalRadius;
+	if (width % 2 == 0)
+	{
+		endX -= 1;
+	}
+
+	float sigY = height == 1 ? 1 : 2 * sigmaY * sigmaY;
+	float sigX = width == 1 ? 1 : 2 * sigmaX * sigmaX;
+
+	float sumOfElements = 0;
+
+	// Вычисление коэффициентов
+	for (int y = -verticalRadius; y <= endY; y++)
+	{
+		for (int x = -horizontalRadius; x <= endX; x++)
+		{
+			kernel[(y + verticalRadius) * width + (x + horizontalRadius)] =
+				exp(-(x * x) / sigX) * exp(-(y * y) / sigY);
+
+			sumOfElements += kernel[(y + verticalRadius) * width + (x + horizontalRadius)];
+		}
+	}
+
+	// Нормировка
+	for (int y = -verticalRadius; y <= endY; y++)
+	{
+		for (int x = -horizontalRadius; x <= endX; x++)
+		{
+			kernel[(y + verticalRadius) * width + (x + horizontalRadius)] /= sumOfElements;
+		}
+	}
+
+	return Kernel(height, width, kernel);
+}
+
+void FilterImageWithLinearSeparableKernel()
 {
 
 }

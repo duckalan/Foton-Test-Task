@@ -20,11 +20,12 @@ int main()
 	{
 		auto now = high_resolution_clock::now();
 
-		FilterImage(
+		/*FilterImage(
 			"H:\\ImageTest\\test2.bmp",
 			"H:\\ImageTest\\output.bmp",
 			kernel
-		);
+		);*/
+		auto a = CreateGaussianBlurKernel(7, 1);
 
 		auto resultTime = duration_cast<milliseconds>(high_resolution_clock::now() - now);
 		std::cout << "Filtering has been completed in " << resultTime.count() << " ms.\n";
