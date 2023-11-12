@@ -345,13 +345,13 @@ void ApplySobelOperator(
 			}
 
 			destRowBuffer[(x - gx.HorizontalRadius()) * BytePerPx]
-				= (uint8_t)std::clamp(sqrtf(xSumB * xSumB + ySumB * ySumB) + 0.5f, 0.f, 255.f);
+				= (uint8_t)std::clamp(sqrt(xSumB*xSumB + ySumB*ySumB) + 0.5f, 0.f, 255.f);
 
 			destRowBuffer[(x - gx.HorizontalRadius()) * BytePerPx + 1]
-				= (uint8_t)std::clamp(sqrtf(xSumG * xSumG + ySumG * ySumG) + 0.5f, 0.f, 255.f);
+				= (uint8_t)std::clamp(sqrt(xSumG * xSumG + ySumG * ySumG) + 0.5f, 0.f, 255.f);
 
 			destRowBuffer[(x - gx.HorizontalRadius()) * BytePerPx + 2]
-				= (uint8_t)std::clamp(sqrtf(xSumR * xSumR + ySumR * ySumR) + 0.5f, 0.f, 255.f);
+				= (uint8_t)std::clamp(sqrt(xSumR * xSumR + ySumR * ySumR) + 0.5f, 0.f, 255.f);
 
 			xOffsetPx++;
 		}
@@ -419,58 +419,3 @@ void ApplySobelOperator(
 
 	2 фильтра, также нормируем и формируем их.
 */
-
-Kernel CreateGaussianBlurKernel(int height, int width)
-{
-	vector<float> kernel(height * width);
-	int verticalRadius = height / 2;
-	int horizontalRadius = width / 2;
-
-	float sigmaY = verticalRadius / 3.f;
-	float sigmaX = horizontalRadius / 3.f;
-
-	int endY = verticalRadius;
-	if (height % 2 == 0)
-	{
-		endY -= 1;
-	}
-
-	int endX = horizontalRadius;
-	if (width % 2 == 0)
-	{
-		endX -= 1;
-	}
-
-	float sigY = height == 1 ? 1 : 2 * sigmaY * sigmaY;
-	float sigX = width == 1 ? 1 : 2 * sigmaX * sigmaX;
-
-	float sumOfElements = 0;
-
-	// Вычисление коэффициентов
-	for (int y = -verticalRadius; y <= endY; y++)
-	{
-		for (int x = -horizontalRadius; x <= endX; x++)
-		{
-			kernel[(y + verticalRadius) * width + (x + horizontalRadius)] =
-				exp(-(x * x) / sigX) * exp(-(y * y) / sigY);
-
-			sumOfElements += kernel[(y + verticalRadius) * width + (x + horizontalRadius)];
-		}
-	}
-
-	// Нормировка
-	for (int y = -verticalRadius; y <= endY; y++)
-	{
-		for (int x = -horizontalRadius; x <= endX; x++)
-		{
-			kernel[(y + verticalRadius) * width + (x + horizontalRadius)] /= sumOfElements;
-		}
-	}
-
-	return Kernel(height, width, kernel);
-}
-
-void FilterImageWithLinearSeparableKernel()
-{
-
-}

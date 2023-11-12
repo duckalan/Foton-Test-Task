@@ -136,6 +136,7 @@
     <ClInclude Include="BmpHeader.h" />
     <ClInclude Include="FilterFunctions.h" />
     <ClInclude Include="Kernel.h" />
+    <ClInclude Include="LinearlySeparableFiltering.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
