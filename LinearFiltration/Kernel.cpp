@@ -1,5 +1,16 @@
 #include "Kernel.h"
 
+Kernel::Kernel(int height, int width)
+{
+	height_ = height;
+	width_ = width;
+
+	verticalRadius_ = height / 2;
+	horizontalRadius_ = width / 2;
+
+	kernel_ = std::vector<float>(height * width);
+}
+
 Kernel::Kernel(int height, int width, std::initializer_list<float> kernel)
 {
 	if (kernel.size() != height * width)

@@ -12,7 +12,7 @@
 using std::vector;
 
 const int ChannelCount = 3;
-const int BytePerPx = 3;
+//const int BytePerPx = 3;
 const int BytePerFloatPx = 12;
 
 void MirrorEdgePixelsInRow(
@@ -45,41 +45,54 @@ void MirrorEdgePixelsInRow(
 
 void ConvolutionX(
 	const vector<uint8_t>& expandedRow,
-	vector<float>& outputRowsBuffer,
+	vector<uint32_t>& outputRowsBuffer,
 	int currentRowOffset,
 	const Kernel& kernelX,
 	int imageWidthPx)
 {
-	int xOffsetPx = 0;
+	uint32_t sumB = 0;
+	uint32_t sumG = 0;
+	uint32_t sumR = 0;
 
-	for (int x = kernelX.HorizontalRadius();
+	// Проход для накопления первоначальной суммы
+	// здесь будто бы x = kernelX.HorizontalRadius() 
+	for (int j = 0; j < kernelX.Width(); j++)
+	{
+		sumB += expandedRow[j * BytePerPx];
+		sumG += expandedRow[j * BytePerPx + 1];
+		sumR += expandedRow[j * BytePerPx + 2];
+	}
+
+	outputRowsBuffer[currentRowOffset] = sumB;
+	outputRowsBuffer[currentRowOffset + 1] = sumG;
+	outputRowsBuffer[currentRowOffset + 2] = sumR;
+
+	// Текущее смещение скользящего окна
+	int xOffsetPx = 1;
+
+	// Основная свёртка скользящим окном
+	for (int x = kernelX.HorizontalRadius() + 1;
 		x < imageWidthPx + kernelX.HorizontalRadius();
 		x++)
 	{
-		float sumB = 0;
-		float sumG = 0;
-		float sumR = 0;
+		sumB -= expandedRow[(xOffsetPx - 1) * BytePerPx];
+		sumB += expandedRow[(xOffsetPx + kernelX.Width() - 1) * BytePerPx];
 
-		for (int j = xOffsetPx; j < xOffsetPx + kernelX.Width(); j++)
-		{
-			sumB += kernelX(0, j - xOffsetPx) * expandedRow[j * BytePerPx];
+		sumG -= expandedRow[(xOffsetPx - 1) * BytePerPx + 1];
+		sumG += expandedRow[(xOffsetPx + kernelX.Width() - 1) * BytePerPx + 1];
 
-			sumG += kernelX(0, j - xOffsetPx) * expandedRow[j * BytePerPx + 1];
-
-			sumR += kernelX(0, j - xOffsetPx) * expandedRow[j * BytePerPx + 2];
-		}
+		sumR -= expandedRow[(xOffsetPx - 1) * BytePerPx + 2];
+		sumR += expandedRow[(xOffsetPx + kernelX.Width() - 1) * BytePerPx + 2];
 
 		outputRowsBuffer[currentRowOffset + (x - kernelX.HorizontalRadius()) * BytePerPx] = sumB;
-
 		outputRowsBuffer[currentRowOffset + (x - kernelX.HorizontalRadius()) * BytePerPx + 1] = sumG;
-
 		outputRowsBuffer[currentRowOffset + (x - kernelX.HorizontalRadius()) * BytePerPx + 2] = sumR;
 
 		xOffsetPx++;
 	}
 }
 
-void FilterImage(
+void BoxBlur(
 	std::filesystem::path srcPath,
 	std::filesystem::path destPath,
 	const Kernel& kernelX,
@@ -119,7 +132,7 @@ void FilterImage(
 	int expandedWidthBytes = imageWidthBytes + kernelX.HorizontalRadius() * 2 * BytePerPx;
 
 	vector<uint8_t> srcRowBuffer(expandedWidthBytes);
-	vector<float> convolutedXRows(rowWidth * kernelY.Height());
+	vector<uint32_t> convolutedXRows(rowWidth * kernelY.Height());
 	vector<uint8_t> destRowBuffer(rowStrideBytes);
 
 	src.seekg(header.imageOffsetBytes);
@@ -154,45 +167,73 @@ void FilterImage(
 			convolutedXRows.data() + bufferY * rowWidth);
 	}
 
+	// Накопление начальной суммы
+	vector<uint32_t> sumBuffer(rowWidth);
+	float divCoef = kernelX.Width() * kernelY.Height();
+
+	for (int x = 0; x < header.imageWidthPx; x++)
+	{
+		int nx = x * ChannelCount;
+		for (int y = 0; y < kernelY.Height(); y++)
+		{
+			sumBuffer[nx] += convolutedXRows[y * rowWidth + nx];
+			sumBuffer[nx + 1] += convolutedXRows[y * rowWidth + nx + 1];
+			sumBuffer[nx + 2] += convolutedXRows[y * rowWidth + nx + 2];
+		}
+
+		destRowBuffer[x * BytePerPx] = (uint8_t)(sumBuffer[nx] / divCoef + 0.5f);
+		destRowBuffer[x * BytePerPx + 1] = (uint8_t)(sumBuffer[nx + 1] / divCoef + 0.5f);
+		destRowBuffer[x * BytePerPx + 2] = (uint8_t)(sumBuffer[nx + 2] / divCoef + 0.5f);
+
+		// Заранее вычитаем верхнюю строку
+		sumBuffer[nx] -= convolutedXRows[nx];
+		sumBuffer[nx + 1] -= convolutedXRows[nx + 1];
+		sumBuffer[nx + 2] -= convolutedXRows[nx + 2];
+	}
+	//std::fill(begin(sumBuffer), end(sumBuffer), 0u);
+
+	dest.write((char*)destRowBuffer.data(), rowStrideBytes);
+
+	src.read(
+		(char*)&srcRowBuffer[kernelX.HorizontalRadius() * BytePerPx],
+		imageWidthBytes);
+	src.seekg(paddingBytesCount, std::ios_base::cur);
+
+	MirrorEdgePixelsInRow(srcRowBuffer, header.imageWidthPx, kernelX);
+
+	ConvolutionX(srcRowBuffer, convolutedXRows,
+		0,
+		kernelX,
+		header.imageWidthPx);
+
 	// Индекс первой строки в буфере
-	int firstRowIndex = 0;
+	int firstRowIndex = 1;
 	int oldFirstRowIndex = 0;
 	int bufIndexToCopy = 0;
 
-	for (int y = kernelY.VerticalRadius();
+	for (int y = kernelY.VerticalRadius() + 1;
 		y < header.imageHeightPx + kernelY.VerticalRadius();
 		y++)
 	{
+		int offsetToTopRow = firstRowIndex * rowWidth;
+		int offsetToBottomRow = ((firstRowIndex + kernelY.Height() - 1) % kernelY.Height()) * rowWidth;
+
 		for (int x = 0; x < header.imageWidthPx; x++)
 		{
-			float sumB = 0;
-			float sumG = 0;
-			float sumR = 0;
+			int nx = x * ChannelCount;
+			// Прибавление нижней строки
+			sumBuffer[nx] += convolutedXRows[offsetToBottomRow + nx];
+			sumBuffer[nx + 1] += convolutedXRows[offsetToBottomRow + nx + 1];
+			sumBuffer[nx + 2] += convolutedXRows[offsetToBottomRow + nx + 2];
 
-			// Свёртка
-			for (int i = 0; i < kernelY.Height(); i++)
-			{
-				int currentRowIndex = (i + firstRowIndex) % kernelY.Height();
-				
-				sumB += kernelY(i, 0) *
-					convolutedXRows[currentRowIndex * rowWidth + x * ChannelCount];
+			destRowBuffer[x * BytePerPx] = (uint8_t)(sumBuffer[nx] / divCoef + 0.5f);
+			destRowBuffer[x * BytePerPx + 1] = (uint8_t)(sumBuffer[nx + 1] / divCoef + 0.5f);
+			destRowBuffer[x * BytePerPx + 2] = (uint8_t)(sumBuffer[nx + 2] / divCoef + 0.5f);
 
-				sumG += kernelY(i, 0) *
-					convolutedXRows[currentRowIndex * rowWidth + x * ChannelCount + 1];
-
-				sumR += kernelY(i, 0) *
-					convolutedXRows[currentRowIndex * rowWidth + x * ChannelCount + 2];
-				
-			}
-
-			destRowBuffer[x * BytePerPx]
-				= (uint8_t)std::clamp(sumB + 0.5f, 0.f, 255.f);
-
-			destRowBuffer[x * BytePerPx + 1]
-				= (uint8_t)std::clamp(sumG + 0.5f, 0.f, 255.f);
-
-			destRowBuffer[x * BytePerPx + 2]
-				= (uint8_t)std::clamp(sumR + 0.5f, 0.f, 255.f);
+			// Вычитание верхней строки
+			sumBuffer[nx] -= convolutedXRows[offsetToTopRow + nx];
+			sumBuffer[nx + 1] -= convolutedXRows[offsetToTopRow + nx + 1];
+			sumBuffer[nx + 2] -= convolutedXRows[offsetToTopRow + nx + 2];
 		}
 
 		// Чтобы при чётных размерах условие отражение не срабатывало 
@@ -244,13 +285,4 @@ void FilterImage(
 
 		dest.write((char*)destRowBuffer.data(), rowStrideBytes);
 	}
-}
-
-void BoxBlur(
-	std::filesystem::path srcPath,
-	std::filesystem::path destPath,
-	const Kernel& kernelX,
-	const Kernel& kernelY)
-{
-
 }

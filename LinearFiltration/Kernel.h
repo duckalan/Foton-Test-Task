@@ -5,13 +5,15 @@
 
 class Kernel
 {
-private:
+protected:
 	std::vector<float> kernel_;
 
 	int height_;
 	int width_;
 	int verticalRadius_;
 	int horizontalRadius_;
+
+	Kernel(int height, int width);
 
 public:
 	Kernel(int height, int width, std::initializer_list<float> kernel);
