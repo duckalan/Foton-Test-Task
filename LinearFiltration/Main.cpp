@@ -16,23 +16,14 @@ int main()
 {
 	try
 	{
-		int n = 100;
-		int m = 100;
-		//GaussianBlurKernel k(10, 10);
-		Kernel k(m, n, vector<float>(n * m, 1.f / (n * m)));
+		int n = 3;
+		int m = 3;
 		Kernel kX(1, n, vector<float>(n, 1.f / n));
 		Kernel kY(m, 1, vector<float>(m, 1.f/ m));
 
 		auto now = high_resolution_clock::now();
-
-		FilterImage("H:\\ImageTest\\test1.bmp", "H:\\ImageTest\\outputFilter.bmp", k);
-
+		MovingRmse("H:\\ImageTest\\test1.bmp", "H:\\ImageTest\\outputBoxRMSD1.bmp", kX, kY);
 		auto resultTime = duration_cast<milliseconds>(high_resolution_clock::now() - now);
-		std::cout << "Filtering has been completed in " << resultTime.count() << " ms.\n";
-
-		now = high_resolution_clock::now();
-		BoxBlur("H:\\ImageTest\\test1.bmp", "H:\\ImageTest\\outputBox.bmp", kX, kY);
-		resultTime = duration_cast<milliseconds>(high_resolution_clock::now() - now);
 		std::cout << "BoxFiltering has been completed in " << resultTime.count() << " ms.\n";
 	}
 	catch (const std::invalid_argument& e)

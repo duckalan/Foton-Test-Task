@@ -245,12 +245,3 @@ void FilterImage(
 		dest.write((char*)destRowBuffer.data(), rowStrideBytes);
 	}
 }
-
-void BoxBlur(
-	std::filesystem::path srcPath,
-	std::filesystem::path destPath,
-	const Kernel& kernelX,
-	const Kernel& kernelY)
-{
-
-}
