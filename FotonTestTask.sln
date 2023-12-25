@@ -5,6 +5,8 @@ VisualStudioVersion = 17.7.34024.191
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FotonTestTask", "FotonTestTask\FotonTestTask.vcxproj", "{F775D1D4-484D-4217-BB93-8DA0D986B233}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LinearFiltration", "LinearFiltration\LinearFiltration.vcxproj", "{CE5EC7B7-8582-428A-AECF-AE4C07DBE2ED}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,14 @@ Global
 		{F775D1D4-484D-4217-BB93-8DA0D986B233}.Release|x64.Build.0 = Release|x64
 		{F775D1D4-484D-4217-BB93-8DA0D986B233}.Release|x86.ActiveCfg = Release|Win32
 		{F775D1D4-484D-4217-BB93-8DA0D986B233}.Release|x86.Build.0 = Release|Win32
+		{CE5EC7B7-8582-428A-AECF-AE4C07DBE2ED}.Debug|x64.ActiveCfg = Debug|x64
+		{CE5EC7B7-8582-428A-AECF-AE4C07DBE2ED}.Debug|x64.Build.0 = Debug|x64
+		{CE5EC7B7-8582-428A-AECF-AE4C07DBE2ED}.Debug|x86.ActiveCfg = Debug|Win32
+		{CE5EC7B7-8582-428A-AECF-AE4C07DBE2ED}.Debug|x86.Build.0 = Debug|Win32
+		{CE5EC7B7-8582-428A-AECF-AE4C07DBE2ED}.Release|x64.ActiveCfg = Release|x64
+		{CE5EC7B7-8582-428A-AECF-AE4C07DBE2ED}.Release|x64.Build.0 = Release|x64
+		{CE5EC7B7-8582-428A-AECF-AE4C07DBE2ED}.Release|x86.ActiveCfg = Release|Win32
+		{CE5EC7B7-8582-428A-AECF-AE4C07DBE2ED}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
