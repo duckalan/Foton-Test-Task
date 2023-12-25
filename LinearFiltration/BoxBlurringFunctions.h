@@ -245,6 +245,9 @@ void BoxBlur(
 				header.imageWidthPx);
 		}
 
+		// тут
+		firstRowIndex = (firstRowIndex + 1) % kernelY.Height();
+
 		// Прибавление нижней строки
 		int offsetToBottomRow = ((firstRowIndex + kernelY.Height() - 1) % kernelY.Height()) * rowWidth;
 		for (int x = 0; x < header.imageWidthPx; x++)
@@ -254,8 +257,6 @@ void BoxBlur(
 			sumBuffer[nx + 1] += convolutedXRows[offsetToBottomRow + nx + 1];
 			sumBuffer[nx + 2] += convolutedXRows[offsetToBottomRow + nx + 2];
 		}
-
-		firstRowIndex = (firstRowIndex + 1) % kernelY.Height();
 	}
 }
 
@@ -342,8 +343,9 @@ uint8_t Rmse(float sumOfSquares, float sum, float divCoef)
 {
 	float meanOfSquares = sumOfSquares / divCoef;
 	float mean = sum / divCoef;
+	float squaredResult = std::max(meanOfSquares - mean * mean, 0.f);
 
-	return (uint8_t)std::clamp(sqrt(meanOfSquares - mean * mean) + 0.5f, 0.f, 255.f);
+	return (uint8_t)std::clamp(sqrt(squaredResult) + 0.5f, 0.f, 255.f);
 }
 
 void MovingRmse(
@@ -518,6 +520,9 @@ void MovingRmse(
 				header.imageWidthPx);
 		}
 
+		firstRowIndex = (firstRowIndex + 1) % kernelY.Height();
+
+
 		// Прибавление нижней строки
 		int offsetToBottomRow = ((firstRowIndex + kernelY.Height() - 1) % kernelY.Height()) * rowWidth;
 		for (int x = 0; x < header.imageWidthPx; x++)
@@ -531,7 +536,5 @@ void MovingRmse(
 			sumOfSquaresBuffer[nx + 1] += rowsOfSummedSquaredCols[offsetToBottomRow + nx + 1];
 			sumOfSquaresBuffer[nx + 2] += rowsOfSummedSquaredCols[offsetToBottomRow + nx + 2];
 		}
-
-		firstRowIndex = (firstRowIndex + 1) % kernelY.Height();
 	}
 }
