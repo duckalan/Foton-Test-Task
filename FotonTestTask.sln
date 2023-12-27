@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FotonTestTask", "FotonTestT
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LinearFiltration", "LinearFiltration\LinearFiltration.vcxproj", "{CE5EC7B7-8582-428A-AECF-AE4C07DBE2ED}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AffineTransformations", "AffineTransformations\AffineTransformations.vcxproj", "{C6093B66-A4AF-4527-B661-347B8B794EE8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -31,6 +33,14 @@ Global
 		{CE5EC7B7-8582-428A-AECF-AE4C07DBE2ED}.Release|x64.Build.0 = Release|x64
 		{CE5EC7B7-8582-428A-AECF-AE4C07DBE2ED}.Release|x86.ActiveCfg = Release|Win32
 		{CE5EC7B7-8582-428A-AECF-AE4C07DBE2ED}.Release|x86.Build.0 = Release|Win32
+		{C6093B66-A4AF-4527-B661-347B8B794EE8}.Debug|x64.ActiveCfg = Debug|x64
+		{C6093B66-A4AF-4527-B661-347B8B794EE8}.Debug|x64.Build.0 = Debug|x64
+		{C6093B66-A4AF-4527-B661-347B8B794EE8}.Debug|x86.ActiveCfg = Debug|Win32
+		{C6093B66-A4AF-4527-B661-347B8B794EE8}.Debug|x86.Build.0 = Debug|Win32
+		{C6093B66-A4AF-4527-B661-347B8B794EE8}.Release|x64.ActiveCfg = Release|x64
+		{C6093B66-A4AF-4527-B661-347B8B794EE8}.Release|x64.Build.0 = Release|x64
+		{C6093B66-A4AF-4527-B661-347B8B794EE8}.Release|x86.ActiveCfg = Release|Win32
+		{C6093B66-A4AF-4527-B661-347B8B794EE8}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
