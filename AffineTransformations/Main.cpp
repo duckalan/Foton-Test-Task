@@ -96,7 +96,6 @@ void RotateImage(
 		for (size_t x2 = 0; x2 < newHeader.imageWidthPx; x2++)
 		{
 			Point p1 = rotMatrix.ReverseTransformation(Point(x2, y2));
-
 			// TODO: сделать выбор интерполяции. Для больших фильтров
 			// нужно зеркалить или дублировать края
 

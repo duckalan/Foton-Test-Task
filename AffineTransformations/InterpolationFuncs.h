@@ -9,12 +9,18 @@
 using std::vector;
 using std::array;
 
-inline array<uint8_t, 3> BilinearInterpolation(
-	Point p1,
-	const ImageData& image)
+inline float Frac(float x) noexcept
 {
-	float x = p1.x;
-	float y = p1.y;
+	return x - int32_t(x);
+}
+
+inline array<uint8_t, 3> BiLerp(Point p1, const ImageData& image)
+{
+	float fracX = Frac(p1.x);
+	float fracY = Frac(p1.y);
+	float invFracX = 1 - fracX;
+	float invFracY = 1 - fracY;
+
 	float x1 = floor(p1.x);
 	float x2 = ceil(p1.x);
 	float y1 = floor(p1.y);
@@ -35,11 +41,9 @@ inline array<uint8_t, 3> BilinearInterpolation(
 	float r21 = image.GetR(x2, y1);
 	float r22 = image.GetR(x2, y2);
 
-	float firstCoef = 1 / ((x2 - x1) * (y2 - y1));
-
-	float b = firstCoef * (b11 * (x2 - x) * (y2 - y) + b21 * (x - x1) * (y2 - y) + b12 * (x2 - x) * (y - y1) + b22 * (x - x1) * (y - y1));
-	float g = firstCoef * (g11 * (x2 - x) * (y2 - y) + g21 * (x - x1) * (y2 - y) + g12 * (x2 - x) * (y - y1) + g22 * (x - x1) * (y - y1));
-	float r = firstCoef * (r11 * (x2 - x) * (y2 - y) + r21 * (x - x1) * (y2 - y) + r12 * (x2 - x) * (y - y1) + r22 * (x - x1) * (y - y1));
+	float b = b11 * invFracX * invFracY + b21 * fracX * invFracY + b12 * invFracX * fracY + b22 * fracX * fracY;
+	float g = g11 * invFracX * invFracY + g21 * fracX * invFracY + g12 * invFracX * fracY + g22 * fracX * fracY;
+	float r = r11 * invFracX * invFracY + r21 * fracX * invFracY + r12 * invFracX * fracY + r22 * fracX * fracY;
 
 	return array<uint8_t, 3>
 	{
