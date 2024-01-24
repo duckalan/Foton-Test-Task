@@ -41,5 +41,8 @@
     <ClInclude Include="ImageData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="InterpolationType.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -26,6 +26,8 @@ public:
 
 	Point ReverseTransformation(const Point& point) const noexcept;
 
+	Point ReverseTransformation(float x, float y) const noexcept;
+
 	Point operator *(const Point& point) const noexcept;
 };
 

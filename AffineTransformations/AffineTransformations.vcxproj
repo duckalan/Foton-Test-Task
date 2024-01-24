@@ -119,6 +119,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -136,6 +137,7 @@
     <ClInclude Include="BmpHeader.h" />
     <ClInclude Include="ImageData.h" />
     <ClInclude Include="InterpolationFuncs.h" />
+    <ClInclude Include="InterpolationType.h" />
     <ClInclude Include="Point.h" />
     <ClInclude Include="RotationMatrix.h" />
   </ItemGroup>
