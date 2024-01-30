@@ -1,9 +1,9 @@
 #pragma once
 
+#include "Point.h"
 #include <limits>
 #include <numbers>
-#include <corecrt_math.h>
-#include "Point.h"
+#include <cmath>
 
 using std::numeric_limits;
 

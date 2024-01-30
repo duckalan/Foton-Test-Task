@@ -1,11 +1,10 @@
+#include "InterpolationFuncs.h"
+#include "InterpolationType.h"
+#include "RotationMatrix.h"
 #include <filesystem>
 #include <ios>
 #include <iostream>
 #include <functional>
-
-#include "InterpolationFuncs.h"
-#include "InterpolationType.h"
-#include "RotationMatrix.h"
 
 using std::filesystem::path;
 using std::string;
@@ -15,13 +14,13 @@ using std::function;
 
 Point FindBCoeffs(
 	const array<Point, 4>& cornerPoints,
-	const RotationMatrix& rotMat)
+	const RotationMatrix& rotationMatrix)
 {
 	float minX = std::numeric_limits<float>::max();
 	float minY = std::numeric_limits<float>::max();
 	for (const Point& p : cornerPoints)
 	{
-		Point rotatedP = rotMat * p;
+		Point rotatedP = rotationMatrix * p;
 		if (minX > rotatedP.x)
 		{
 			minX = rotatedP.x;
@@ -37,13 +36,13 @@ Point FindBCoeffs(
 
 Point FindRotatedImageSize(
 	const array<Point, 4>& cornerPoints,
-	const RotationMatrix& rotMat)
+	const RotationMatrix& rotationMatrix)
 {
 	float maxX = -std::numeric_limits<float>::max();
 	float maxY = -std::numeric_limits<float>::max();
 	for (const Point& p : cornerPoints)
 	{
-		Point rotatedP = rotMat * p;
+		Point rotatedP = rotationMatrix * p;
 		if (maxX < rotatedP.x)
 		{
 			maxX = rotatedP.x;
@@ -78,6 +77,7 @@ SelectInterpolationFunc(InterpolationType interpolationType)
 		return &Lanczos3;
 
 	default:
+		throw std::exception("Wrong enum type");
 		break;
 	}
 }
@@ -191,10 +191,10 @@ int main()
 {
 	float angleDeg = -0.f;
 	string rootPath = "H:\\ImageTest\\";
-	string inputImageName = "test1";
+	string inputImageName = "test";
 	string outputImageName = inputImageName + '_';
 	string bmp = ".bmp";
-	InterpolationType interpolationType = InterpolationType::BiCubic;
+	InterpolationType interpolationType = InterpolationType::Lanczos2;
 
 	switch (interpolationType)
 	{

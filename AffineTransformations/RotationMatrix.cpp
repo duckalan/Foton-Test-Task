@@ -1,9 +1,8 @@
 #include "RotationMatrix.h"
 
-
 RotationMatrix::RotationMatrix(float angleDeg, float b1, float b2) noexcept
 {
-	float angleRad = std::numbers::pi * angleDeg / 180.f;
+	float angleRad = std::numbers::pi_v<float> * angleDeg / 180.f;
 	a11_ = cos(angleRad);
 	a21_ = sin(angleRad);
 	a12_ = -a21_;
