@@ -145,7 +145,7 @@ inline float Sinc(float x) noexcept
 	return sin(x * pi_v<float>) / (x * pi_v<float>);
 }
 
-inline float LanczosKernel(float x, int a) noexcept 
+inline float LanczosKernel(float x, int a) noexcept
 {
 	if (abs(x) < 1e-5)
 	{
@@ -160,7 +160,8 @@ inline float LanczosKernel(float x, int a) noexcept
 	return 0.f;
 }
 
-// Выход за границы изображения при интерполяции при повороте на 0 градусов
+// Выход за границы изображения при интерполяции при повороте
+// на градус, кратный pi/2
 inline array<uint8_t, 3> LanczosInterpolation(
 	const Point& p1,
 	int a,
@@ -174,25 +175,50 @@ inline array<uint8_t, 3> LanczosInterpolation(
 	int startIndexY = floor(p1.y) - a + 1;
 	int endIndexY = floor(p1.y) + a;
 
-	for (size_t i = 0; i < 3; i++)
+	// Заранее вычисление весов ядра по X и их суммы
+	// для нормировки 
+	float weightSumX = 0;
+	vector<float> weightsX(a * 2);
+	for (size_t x = startIndexX; x <= endIndexX; x++)
 	{
+		float weightX = LanczosKernel(p1.x - x, a);
+		weightSumX += weightX;
+		weightsX[x - startIndexX] = weightX;
+	}
+
+	// То же самое по Y
+	float weightSumY = 0;
+	vector<float> weightsY(a * 2);
+	for (size_t y = startIndexY; y <= endIndexY; y++)
+	{
+		float weightY = LanczosKernel(p1.y - y, a);
+		weightSumY += weightY;
+		weightsY[y - startIndexY] = weightY;
+	}
+
+	for (size_t colorOffset = 0; colorOffset < 3; colorOffset++)
+	{
+		// Свёртка по X
 		for (size_t y = startIndexY; y <= endIndexY; y++)
 		{
 			for (size_t x = startIndexX; x <= endIndexX; x++)
 			{
-				convolutedRows[y - startIndexY] += image(x, y, i) * LanczosKernel(p1.x - x, a);
+				convolutedRows[y - startIndexY] +=
+					image(x, y, colorOffset) * weightsX[x - startIndexX];
 			}
+			convolutedRows[y - startIndexY] /= weightSumX;
 		}
 
+		// Свёртка по Y
 		float convolutionResult = 0.f;
 		for (size_t y = startIndexY; y <= endIndexY; y++)
 		{
 			convolutionResult +=
-				convolutedRows[y - startIndexY] * LanczosKernel(p1.y - y, a);
+				convolutedRows[y - startIndexY] * weightsY[y - startIndexY];
 		}
 
-		result[i] = (uint8_t)std::clamp(
-			convolutionResult + 1.f,
+		result[colorOffset] = (uint8_t)std::clamp(
+			convolutionResult / weightSumY + 1.f,
 			0.f,
 			255.f
 		);
@@ -215,8 +241,6 @@ inline array<uint8_t, 3> Lanczos2(
 	return LanczosInterpolation(realP1, 2, image);
 }
 
-// На полностью белом квадрате 6x6 вместо постоянных
-// 255 иногда выдаёт 254
 inline array<uint8_t, 3> Lanczos3(
 	const Point& p1,
 	const ImageData& image) noexcept
