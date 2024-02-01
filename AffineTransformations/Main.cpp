@@ -89,11 +89,11 @@ void RotateImage(
 	InterpolationType interpolationType)
 {
 	std::ifstream input(
-		inputPath, 
+		inputPath,
 		std::ios_base::binary
 	);
 	std::ofstream output(
-		outputPath, 
+		outputPath,
 		std::ios_base::binary
 	);
 	if (!input.is_open() || !output.is_open())
@@ -158,17 +158,22 @@ void RotateImage(
 	// Заполнение и построчная запись перемещённого изображения
 	for (size_t y2 = 0; y2 < newHeightPx; y2++)
 	{
+		std::cout << std::format(
+			"Current progress for Y: {:.2f}%\r", 
+			(float)(y2 + 1) / newHeightPx * 100.f
+		);
+
 		for (size_t x2 = 0; x2 < newWidthPx; x2++)
 		{
 			Point p1 = rotationMatrix
 				.ReverseTransformation(x2, y2);
 
-			if (p1.x >= 0 && 
+			if (p1.x >= 0 &&
 				p1.x <= (header.imageWidthPx - 1) &&
-				p1.y >= 0 && 
+				p1.y >= 0 &&
 				p1.y <= (header.imageHeightPx - 1))
 			{
-				array<uint8_t, 3> bgr 
+				array<uint8_t, 3> bgr
 					= interpolationFunc(p1, inputImage);
 
 				outputRow[x2 * 3] = bgr[0];
@@ -181,20 +186,20 @@ void RotateImage(
 				outputRow[x2 * 3 + 1] = 0;
 				outputRow[x2 * 3 + 2] = 0;
 			}
-		}
 
+		}
 		output.write((char*)outputRow.data(), outputRowStride);
 	}
 }
 
 int main()
 {
-	float angleDeg = -0.f;
-	string rootPath = "H:\\ImageTest\\";
-	string inputImageName = "test";
+	float angleDeg = 0;
+	string rootPath = "C:\\Users\\...\\Desktop\\test images\\";
+	string inputImageName = "test2";
 	string outputImageName = inputImageName + '_';
 	string bmp = ".bmp";
-	InterpolationType interpolationType = InterpolationType::Lanczos2;
+	InterpolationType interpolationType = InterpolationType::Lanczos3;
 
 	switch (interpolationType)
 	{
@@ -231,7 +236,7 @@ int main()
 			interpolationType
 		);
 
-		std::cout << "Done\n";
+		std::cout << "\nDone\n";
 	}
 	catch (const std::ios_base::failure& e)
 	{

@@ -160,8 +160,6 @@ inline float LanczosKernel(float x, int a) noexcept
 	return 0.f;
 }
 
-// Выход за границы изображения при интерполяции при повороте
-// на градус, кратный pi/2
 inline array<uint8_t, 3> LanczosInterpolation(
 	const Point& p1,
 	int a,
@@ -171,9 +169,9 @@ inline array<uint8_t, 3> LanczosInterpolation(
 	array<uint8_t, 3> result{};
 	vector<float> convolutedRows(a * 2);
 	int startIndexX = floor(p1.x) - a + 1;
-	int endIndexX = floor(p1.x) + a;
+	int endIndexX = ceil(p1.x) + a - 1;
 	int startIndexY = floor(p1.y) - a + 1;
-	int endIndexY = floor(p1.y) + a;
+	int endIndexY = ceil(p1.y) + a - 1;
 
 	// Заранее вычисление весов ядра по X и их суммы
 	// для нормировки 
