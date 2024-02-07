@@ -10,8 +10,8 @@ using std::vector;
 class ImageData
 {
 private:
-	int widthPx;
-	int heightPx;
+	int32_t widthPx;
+	int32_t heightPx;
 
 	/// <summary>
 	/// Количество пикселей, на которое изображение 
@@ -44,7 +44,7 @@ public:
 	int GetExtendedPxCount() const noexcept;
 
 	uint8_t operator()(
-		int x, int y, 
+		int32_t x, int32_t y, 
 		uint32_t colorOffset) const;
 };
 

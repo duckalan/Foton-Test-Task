@@ -83,19 +83,19 @@ ImageData::ImageData(
 	heightPx = header.imageHeightPx + extendedPxCount * 2;
 	image = vector<uint8_t>(widthPx * heightPx * 3);
 
-	int originalWidthBytes = header.imageWidthPx * 3;
-	int extendedWidthBytes = widthPx * 3;
-	int paddingBytesCount = ((originalWidthBytes + 3) & ~3) - originalWidthBytes;
+	int32_t originalWidthBytes = header.imageWidthPx * 3;
+	int32_t extendedWidthBytes = widthPx * 3;
+	int32_t paddingBytesCount = ((originalWidthBytes + 3) & ~3) - originalWidthBytes;
 
 	input.seekg(header.imageOffsetBytes);
 
 	// Загрузка изображения
 	for (size_t y = extendedPxCount;
-		y < header.imageHeightPx + extendedPxCount;
+		y < (size_t)header.imageHeightPx + extendedPxCount;
 		y++)
 	{
 		input.read(
-			(char*)&image[extendedPxCount * 3 + extendedWidthBytes * y],
+			(char*)&image[(size_t)extendedPxCount * 3 + extendedWidthBytes * y],
 			originalWidthBytes
 		);
 		input.seekg(paddingBytesCount, std::ios_base::cur);
@@ -140,8 +140,8 @@ int ImageData::GetExtendedPxCount() const noexcept
 }
 
 uint8_t ImageData::operator()(
-	int x, int y, 
+	int32_t x, int32_t y, 
 	uint32_t colorOffset) const
 {
-	return image[(y * widthPx + x) * 3 + colorOffset];
+	return image[(size_t)(y * widthPx + x) * 3 + colorOffset];
 }

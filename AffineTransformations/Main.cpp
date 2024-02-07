@@ -5,7 +5,11 @@
 #include <ios>
 #include <iostream>
 #include <functional>
+#include <chrono>
 
+using std::chrono::high_resolution_clock;
+using std::chrono::duration_cast;
+using std::chrono::milliseconds;
 using std::filesystem::path;
 using std::string;
 using std::ifstream;
@@ -159,7 +163,7 @@ void RotateImage(
 	for (size_t y2 = 0; y2 < newHeightPx; y2++)
 	{
 		std::cout << std::format(
-			"Current progress for Y: {:.2f}%\r", 
+			"Current progress for Y: {:.2f}%\r",
 			(float)(y2 + 1) / newHeightPx * 100.f
 		);
 
@@ -229,6 +233,8 @@ int main()
 	outputImageName += std::format("({:.2f}deg)", angleDeg);
 	try
 	{
+		auto now = high_resolution_clock::now();
+
 		RotateImage(
 			rootPath + inputImageName + bmp,
 			rootPath + outputImageName + bmp,
@@ -236,7 +242,8 @@ int main()
 			interpolationType
 		);
 
-		std::cout << "\nDone\n";
+		auto resultTime = duration_cast<milliseconds>(high_resolution_clock::now() - now);
+		std::cout << "\nDone in " << resultTime.count() << " ms.\n";
 	}
 	catch (const std::ios_base::failure& e)
 	{
